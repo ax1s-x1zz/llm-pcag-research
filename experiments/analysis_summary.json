@@ -1,0 +1,60 @@
+{
+  "P0_energy": 140.0,
+  "A0_acc": 66.6,
+  "points": [
+    {
+      "precision": "FP16",
+      "bits": 16,
+      "accuracy": 66.6,
+      "energy": 140.0,
+      "pcag_raw": null,
+      "pcag_eff": null
+    },
+    {
+      "precision": "INT8",
+      "bits": 8,
+      "accuracy": 65.5,
+      "energy": 92.0,
+      "pcag_raw": 0.022916666666666547,
+      "pcag_eff": 20.758441558441664
+    },
+    {
+      "precision": "INT4",
+      "bits": 4,
+      "accuracy": 63.0,
+      "energy": 61.0,
+      "pcag_raw": 0.04556962025316449,
+      "pcag_eff": 10.43928571428573
+    },
+    {
+      "precision": "INT3",
+      "bits": 3,
+      "accuracy": 58.0,
+      "energy": 54.0,
+      "pcag_raw": 0.09999999999999994,
+      "pcag_eff": 4.757142857142861
+    },
+    {
+      "precision": "INT2",
+      "bits": 2,
+      "accuracy": 47.0,
+      "energy": 49.5,
+      "pcag_raw": 0.21657458563535906,
+      "pcag_eff": 2.1965379008746364
+    }
+  ],
+  "power_wall": {
+    "from": "INT4",
+    "to": "INT3",
+    "from_bits": 4,
+    "to_bits": 3,
+    "slope_per_bit": 5.6821428571428685
+  },
+  "continuous_inflection": {
+    "second_derivative_zero_candidates_bits": [
+      3.51
+    ],
+    "bmin": 2.0,
+    "bmax": 8.0
+  }
+}

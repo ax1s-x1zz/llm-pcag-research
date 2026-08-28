@@ -1,0 +1,49 @@
+{
+  "model": {
+    "S(x)": "S_max*(1-exp(-(lambda*x)**beta))",
+    "Lr(x)": "c_lin*x + Lr_max*sigmoid(k*(x-xc))",
+    "x_definition": "x = 16 - b (quantization depth)",
+    "fitted_params": {
+      "S_max": 0.7959994071289641,
+      "lambda": 0.09319649531693938,
+      "beta": 1.9569851377932461,
+      "c_lin": 0.0020499306835803756,
+      "Lr_max": 0.5581189027540728,
+      "k": 1.3954607074157004,
+      "xc": 14.069204305355642,
+      "rmse_S": 0.002200326722903806,
+      "rmse_L": 7.443251565511717e-10
+    },
+    "pcag_rmse_discrete_vs_model": 0.028109970740934333
+  },
+  "closed_form_verification": {
+    "gS_max_rel_err": 2.2641936829606085e-09,
+    "g_max_rel_err": 5.475747854581028e-08
+  },
+  "inflection_condition_3_1": {
+    "log_derivative_g": "g(x) = S'/S - L'/L",
+    "gS_closed_form": "beta*lambda^beta*x^(beta-1)/(exp((lambda*x)^beta)-1)",
+    "gL_closed_form": "(c + Lr_max*k*sigmoid'(k(x-xc))) / (c*x + Lr_max*sigmoid(k(x-xc)))",
+    "inflection_eq": "h(x) = g'(x) + g(x)^2 = 0  (amplitude-independent)",
+    "observation_domain_x": [
+      8.0,
+      14.0
+    ],
+    "roots": [
+      {
+        "x_star": 11.8083,
+        "b_star": 4.1917,
+        "h_prime_nonzero": true,
+        "h_prime": 0.549326
+      }
+    ],
+    "b_star_primary": 4.191739122696326,
+    "empirical_pchip_b": 3.51,
+    "monte_carlo_mean_b": 3.398
+  },
+  "jevons_closed_form": {
+    "load_ratio_latex": "\\left(1 - s\\right)^{1 - E_{d}}",
+    "dLds_latex": "\\left(1 - s\\right)^{- E_{d}} \\left(E_{d} - 1\\right)",
+    "factorization_verified": true
+  }
+}

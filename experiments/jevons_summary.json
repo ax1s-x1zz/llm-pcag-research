@@ -1,0 +1,158 @@
+{
+  "config": {
+    "P0_tok": 0.14,
+    "Q0_tok": 1.0,
+    "E_d": 1.5,
+    "savings": [
+      0.0,
+      0.049999999999999996,
+      0.09999999999999999,
+      0.15,
+      0.19999999999999998,
+      0.24999999999999997,
+      0.3,
+      0.35,
+      0.39999999999999997,
+      0.44999999999999996,
+      0.49999999999999994,
+      0.5499999999999999,
+      0.6,
+      0.6499999999999999,
+      0.7
+    ]
+  },
+  "summary": {
+    "baseline_load": 0.14,
+    "E_d": 1.5,
+    "records": [
+      {
+        "savings": 0.0,
+        "cost_after": 0.14,
+        "demand_after": 1.0,
+        "demand_growth_pct": 0.0,
+        "total_load": 0.14,
+        "load_change_pct": 0.0
+      },
+      {
+        "savings": 0.049999999999999996,
+        "cost_after": 0.133,
+        "demand_after": 1.0799772127212148,
+        "demand_growth_pct": 7.997721272121483,
+        "total_load": 0.14363696929192157,
+        "load_change_pct": 2.5978352085154
+      },
+      {
+        "savings": 0.09999999999999999,
+        "cost_after": 0.12600000000000003,
+        "demand_after": 1.1712139482105106,
+        "demand_growth_pct": 17.121394821051062,
+        "total_load": 0.14757295747452437,
+        "load_change_pct": 5.409255338945967
+      },
+      {
+        "savings": 0.15,
+        "cost_after": 0.11900000000000001,
+        "demand_after": 1.2760615165803304,
+        "demand_growth_pct": 27.606151658033042,
+        "total_load": 0.15185132047305933,
+        "load_change_pct": 8.46522890932808
+      },
+      {
+        "savings": 0.19999999999999998,
+        "cost_after": 0.11200000000000002,
+        "demand_after": 1.3975424859373684,
+        "demand_growth_pct": 39.75424859373684,
+        "total_load": 0.15652475842498528,
+        "load_change_pct": 11.803398874989478
+      },
+      {
+        "savings": 0.24999999999999997,
+        "cost_after": 0.10500000000000001,
+        "demand_after": 1.539600717839002,
+        "demand_growth_pct": 53.96007178390021,
+        "total_load": 0.16165807537309523,
+        "load_change_pct": 15.470053837925155
+      },
+      {
+        "savings": 0.3,
+        "cost_after": 0.098,
+        "demand_after": 1.7074694419062768,
+        "demand_growth_pct": 70.74694419062769,
+        "total_load": 0.16733200530681513,
+        "load_change_pct": 19.52286093343937
+      },
+      {
+        "savings": 0.35,
+        "cost_after": 0.09100000000000001,
+        "demand_after": 1.9082266859878223,
+        "demand_growth_pct": 90.82266859878223,
+        "total_load": 0.17364862842489184,
+        "load_change_pct": 24.034734589208448
+      },
+      {
+        "savings": 0.39999999999999997,
+        "cost_after": 0.08400000000000002,
+        "demand_after": 2.1516574145596756,
+        "demand_growth_pct": 115.16574145596756,
+        "total_load": 0.1807392228230128,
+        "load_change_pct": 29.09944487358056
+      },
+      {
+        "savings": 0.44999999999999996,
+        "cost_after": 0.07700000000000001,
+        "demand_after": 2.4516358635026982,
+        "demand_growth_pct": 145.16358635026984,
+        "total_load": 0.1887759614897078,
+        "load_change_pct": 34.839972492648414
+      },
+      {
+        "savings": 0.49999999999999994,
+        "cost_after": 0.07,
+        "demand_after": 2.8284271247461903,
+        "demand_growth_pct": 182.84271247461902,
+        "total_load": 0.19798989873223333,
+        "load_change_pct": 41.4213562373095
+      },
+      {
+        "savings": 0.5499999999999999,
+        "cost_after": 0.06300000000000001,
+        "demand_after": 3.3126932999996876,
+        "demand_growth_pct": 231.26932999996876,
+        "total_load": 0.20869967789998037,
+        "load_change_pct": 49.07119849998596
+      },
+      {
+        "savings": 0.6,
+        "cost_after": 0.05600000000000001,
+        "demand_after": 3.9528470752104736,
+        "demand_growth_pct": 295.2847075210474,
+        "total_load": 0.22135943621178655,
+        "load_change_pct": 58.11388300841895
+      },
+      {
+        "savings": 0.6499999999999999,
+        "cost_after": 0.049000000000000016,
+        "demand_after": 4.82945288416295,
+        "demand_growth_pct": 382.945288416295,
+        "total_load": 0.23664319132398462,
+        "load_change_pct": 69.03085094570328
+      },
+      {
+        "savings": 0.7,
+        "cost_after": 0.04200000000000001,
+        "demand_after": 6.085806194501845,
+        "demand_growth_pct": 508.5806194501845,
+        "total_load": 0.25560386016907755,
+        "load_change_pct": 82.57418583505537
+      }
+    ]
+  },
+  "int4_point": {
+    "savings": 0.5499999999999999,
+    "cost_after": 0.06300000000000001,
+    "demand_after": 3.3126932999996876,
+    "demand_growth_pct": 231.26932999996876,
+    "total_load": 0.20869967789998037,
+    "load_change_pct": 49.07119849998596
+  }
+}

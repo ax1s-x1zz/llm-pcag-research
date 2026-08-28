@@ -1,0 +1,6 @@
+Precision,Model_Name,Latency_ms,Throughput_tps,Avg_Power_W,Total_Energy_J,Accuracy_Score,VRAM_GB,Source,Notes
+FP16,meta-llama/Llama-3-8B,30.5,32.79,385.0,140.0,66.6,15.8,Reference-Literature,"문헌 앵커 기반 참고 수치(아직 GPU 미실측). 생성 2026-08-27. accuracy=MMLU-style proxy, E=J/1000 tokens"
+INT8,meta-llama/Llama-3-8B,25.2,39.68,312.0,92.0,65.5,8.4,Reference-Literature,"문헌 앵커 기반 참고 수치(아직 GPU 미실측). 생성 2026-08-27. accuracy=MMLU-style proxy, E=J/1000 tokens"
+INT4,meta-llama/Llama-3-8B,21.0,47.62,245.0,61.0,63.0,5.9,Reference-Literature,"문헌 앵커 기반 참고 수치(아직 GPU 미실측). 생성 2026-08-27. accuracy=MMLU-style proxy, E=J/1000 tokens"
+INT3,meta-llama/Llama-3-8B,19.6,51.02,228.0,54.0,58.0,4.8,Reference-Literature,"문헌 앵커 기반 참고 수치(아직 GPU 미실측). 생성 2026-08-27. accuracy=MMLU-style proxy, E=J/1000 tokens"
+INT2,meta-llama/Llama-3-8B,18.9,52.91,220.0,49.5,47.0,4.2,Reference-Literature,"문헌 앵커 기반 참고 수치(아직 GPU 미실측). 생성 2026-08-27. accuracy=MMLU-style proxy, E=J/1000 tokens"
