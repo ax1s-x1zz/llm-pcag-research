@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS artifacts
+*:Zone.Identifier
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Experiment scratch outputs
+experiments/*.log
+*.tmp
