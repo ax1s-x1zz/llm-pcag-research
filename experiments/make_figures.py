@@ -43,6 +43,28 @@ plt.rcParams.update({
 FOOT = "Data: literature-anchored reference (Source=Reference-Literature, GPU measurement pending)"
 
 
+def detect_measured():
+    """results_raw.csv / results_multimodel_raw.csv 에 Measured-GPU 행이 있으면 True."""
+    for path in (CSV_MAIN, CSV_MULTI):
+        if not os.path.exists(path):
+            continue
+        with open(path, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                if r.get("Source") == "Measured-GPU":
+                    return True
+    return False
+
+
+def refresh_footnote():
+    """실측(Source=Measured-GPU) 데이터 존재 시 모든 그림 하단 출처 문구 갱신."""
+    global FOOT
+    if detect_measured():
+        FOOT = "Data: measured on GPU (Source=Measured-GPU, Google Colab T4)"
+    else:
+        FOOT = "Data: literature-anchored reference (Source=Reference-Literature, GPU measurement pending)"
+    return FOOT
+
+
 def load_main():
     rows = []
     with open(CSV_MAIN, newline="", encoding="utf-8") as f:
@@ -103,8 +125,8 @@ def save(fig, name):
     print(f"  [ok] {name}.png/.pdf")
 
 
-def footnote(fig, text="Reference-literature anchors (GPU measurement pending)"):
-    fig.text(0.99, 0.005, text, ha="right", va="bottom", fontsize=7.5,
+def footnote(fig, text=None):
+    fig.text(0.99, 0.005, text or FOOT, ha="right", va="bottom", fontsize=7.5,
              color="#888", style="italic")
 
 
@@ -730,12 +752,13 @@ def fig17(rows, sens, proof):
 
 def main():
     os.makedirs(FIG_DIR, exist_ok=True)
+    refresh_footnote()
+    print(f"=== 그림 생성 시작 (16+1종) | source={FOOT} ===")
     rows, P0, A0 = load_main()
     multi = load_multi()
     sens = load_json("sensitivity_summary.json")
     proof = load_json("analysis_proof.json")
     jev = load_json("jevons_summary.json")
-    print("=== 그림 생성 시작 (16+1종) ===")
     fig1(rows, P0, A0)
     fig2(rows, proof)
     fig3(jev, rows)
