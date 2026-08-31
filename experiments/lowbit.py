@@ -205,3 +205,94 @@ def quantize_model(model, bits):
             parent = model.get_submodule(parent_name) if parent_name else model
             parent._modules[child] = quantize_linear(module, bits)
     return model
+
+
+# ---------------------------------------------------------------- 스트리밍 로더
+# T4(14.6GB) 에서 8B fp16(≈15GB)은 GPU·CPU RAM 어디에도 전체 상주 불가(ISSUE-CODE-12).
+# 따라서 체크포인트 shard 를 하나씩 읽어, Linear 는 즉시 packed 저비트로 변환하고
+# fp16 은 해제한다 → 상주 메모리는 packed 가중치 + 임베딩/lm_head(소형) 뿐.
+def load_lowbit_from_checkpoint(model_name, bits, device="cuda"):
+    """safetensors/.bin 체크포인트를 스트리밍으로 읽어 LowBitLinear 모델을 만든다.
+
+    반환: (model, tokenizer). model 은 packed 저비트 가중치만 상주(CPU 후 GPU 이동).
+    """
+    import os
+    import torch
+    import torch.nn as nn
+    from transformers import AutoModelForCausalLM, AutoConfig, AutoTokenizer
+    from accelerate import init_empty_weights
+    from transformers.utils import get_checkpoint_shard_files
+    from huggingface_hub import snapshot_download
+
+    config = AutoConfig.from_pretrained(model_name, torch_dtype=torch.float16)
+
+    # 체크포인트 shard 경로 확보 (캐시)
+    cache_dir = snapshot_download(model_name, allow_patterns=[
+        "*.safetensors", "*.bin", "*.json", "*.model", "tokenizer*"])
+    index_path = None
+    for cand in ("model.safetensors.index.json", "pytorch_model.bin.index.json"):
+        p = os.path.join(cache_dir, cand)
+        if os.path.exists(p):
+            index_path = p
+            break
+    if index_path is None:
+        # shard 없는 단일 파일 모델
+        shard_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir)
+                       if f.endswith(".safetensors") or f.endswith(".bin")]
+    else:
+        shard_files, _ = get_checkpoint_shard_files(model_name, index_path,
+                                                    cache_dir=cache_dir)
+
+    # 빈(meta) LowBitLinear 스켈레톤 구성
+    with init_empty_weights():
+        model = AutoModelForCausalLM.from_config(config, torch_dtype=torch.float16)
+    _replace_linears_skeleton(model, bits)
+
+    def _set_param(module, param, value):
+        # meta 텐서를 실데이터로 교체 (low_cpu_mem_usage 스타일)
+        module._parameters[param] = nn.Parameter(value, requires_grad=False)
+
+    for shard in shard_files:
+        if shard.endswith(".safetensors"):
+            from safetensors.torch import load_file
+            sd = load_file(shard, device="cpu")
+        else:
+            sd = torch.load(shard, map_location="cpu", weights_only=True)
+        for name, tensor in sd.items():
+            # "xxx.weight" / "xxx.bias" → 모듈 경로 + 파라미터명
+            if name.endswith(".weight") or name.endswith(".bias"):
+                mod_name, param = name.rsplit(".", 1)
+                if mod_name == "":
+                    continue
+                module = model.get_submodule(mod_name)
+                if isinstance(module, LowBitLinear):
+                    if param == "weight":
+                        # 즉시 packed 변환 → fp16 해제
+                        module.quantize(tensor.float().half(), None)
+                    else:  # bias
+                        module._bias = tensor.float().half()
+                else:
+                    _set_param(module, param, tensor)
+        del sd
+        torch.cuda.empty_cache()
+        import gc; gc.collect()
+
+    # non-Linear 가중치(임베딩/lm_head/norm)와 packed 가중치만 GPU 로
+    model.to(device)
+    torch.cuda.empty_cache()
+    import gc; gc.collect()
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    return model, tokenizer
+
+
+def _replace_linears_skeleton(model, bits):
+    """meta 스켈레톤의 nn.Linear 를 LowBitLinear 로 교체 (가중치는 로더가 채움)."""
+    for name, module in list(model.named_modules()):
+        if isinstance(module, nn.Linear):
+            low = LowBitLinear(bits, module.in_features, module.out_features)
+            parent_name, _, child = name.rpartition(".")
+            parent = model.get_submodule(parent_name) if parent_name else model
+            parent._modules[child] = low

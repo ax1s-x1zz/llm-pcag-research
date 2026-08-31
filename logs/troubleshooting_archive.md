@@ -204,3 +204,26 @@
 - **시도한 해결책**: pack/unpack 을 pure-Python 으로 동일 재구현 → 랜덤 라운드트립(모든 비트 × 다양한 열 수/비정렬 케이스, 수십 trial)으로 원본 복원 검증.
 - **최종 수정**: 모든 비트(2~8) × shape(비정렬 포함)에서 원본과 100% 일치 확인. 비트 연산(<<, >>, |, &) 순서를 텐서 구현과 1:1 대응시켜 검증.
 - **교훈**: "GPU 가 없어서" 검증을 미루지 말 것 — 순수 로직은 CPU/스텁으로도 단위 검증 가능. 하드웨어 의존 코드는 로직 검증을 먼저 격리하라.
+
+---
+
+## ISSUE-CODE-12: T4(14.6GB) 에서 8B fp16 전체 로딩 OOM — RTN 저비트 로딩 실패
+- **시각**: 2026-08-31 (Colab T4 실측 스모크 테스트)
+- **증상**: `Qwen/Qwen2.5-7B` INT8 (rtn) 로딩 중 `torch.OutOfMemoryError`. 로그:
+  - 모델 다운로드 15.2GB 완료 → `Loading weights` → `quantize_linear` 의 `(q+offset).to(uint8)` 에서 66MiB 할당 실패.
+  - T4 총 14.56GiB 중 14.27GiB PyTorch 할당, 여유 31.81MiB.
+- **근본 원인 가설**: 기존 `device_map="auto" + torch_dtype=fp16` 로딩이 fp16 **전체**(≈15GB)를 GPU에 상주시킨 뒤, `quantize_model` 이 GPU 가중치를 통째로 변환 → 8B fp16은 T4 14.6GB 를 초과. (INT8도 동일하게 fp16으로 로드되어 동일 OOM)
+- **시도한 해결책**: ① GPU 메모리 상한(80%) 조정 — 8B는 100%여도 부족. ② `expandable_segments:True` 추가 — 단편화는 줄지만 용량 자체 부족은 해결 못함.
+- **최종 수정**: **체크포인트 shard 스트리밍 로더**(`lowbit.load_lowbit_from_checkpoint`) 신설 — `init_empty_weights` 로 빈 모델 생성 → safetensors shard 를 하나씩 읽어 **Linear 는 즉시 packed 저비트로 변환·fp16 해제**, non-Linear(임베딩/lm_head/norm)만 보존 → packed 가중치 + 임베딩만 GPU 로 이동. 상주 메모리를 8B fp16(≈15GB)에서 packed(≈2~8GB)+임베딩(≈2GB) 수준으로 절감.
+- **교훈**: 8B fp16(16GB)은 T4(14.6GB)에 들어가지 않는다. 저비트 실측은 "fp16 전체 로딩 후 변환"이 아니라 "스트리밍 로딩하며 즉시 packed 변환"이어야 한다. **부수 문제: FP16 기준(reference)도 8B에선 T4에 못 올림 → FP16 baseline 자체가 불가능한 모델/환경 조합이 존재**(별도 이슈로 관리 필요).
+- **후속 (Colab 재검증 필요)**: 동일 스모크 테스트로 스트리밍 로더 동작 확인.
+
+---
+
+## ISSUE-DATA-03: T4 에서 8B 모델의 FP16 기준(reference) 상주 불가
+- **시각**: 2026-08-31 (ISSUE-CODE-12 후속 분석)
+- **증상**: PCAG 는 FP16(기준점 A0, P0)에 상대적으로 정의되는데, Llama-3-8B FP16(≈16GB)은 T4 14.6GB에 상주 불가 → 기본 곡선의 FP16 기준을 실측으로 얻을 수 없음.
+- **근본 원인 가설**: 8B × 2byte(fp16) = 16GB > 14.6GB. T4 16GB 표기이나 실제 사용 가능 ≈14.6GB.
+- **시도한 해결책**: (검토) ① Qwen-2.5-7B/Mistral-7B(7B, fp16≈14GB)를 기준 모델로 채택. ② FP16 대신 **실측 가능한 최고 정밀도(INT8)를 기준**으로 PCAG 재정의(현재 분석 코드는 FP16=rows[0] 가정).
+- **최종 수정**: 미결정 — (a) 기준 모델을 7B 로 바꾸거나, (b) 기준 정밀도를 INT8 로 바꾸는 설계 변경 필요. 현재는 Colab 재검증 후 결정 예정.
+- **교훈**: "16GB GPU"가 실제로는 fp16 8B 한도 미만이라는 물리 제약을 실측 설계에 반영해야 함. PCAG 의 기준점 선택이 실측 가능성에 좌우됨.

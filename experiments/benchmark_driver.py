@@ -71,21 +71,11 @@ def has_gpu():
 
 def _prep_cuda_env():
     """T4 16GB 에서 CUDA 메모리 단편화/OOM 을 줄이는 환경 설정."""
-    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "max_split_size_mb:128")
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF",
+                          "expandable_segments:True,max_split_size_mb:128")
     import torch
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
-
-
-def _safe_max_memory():
-    """INT3/INT2 변환 중 여유를 두기 위한 GPU 메모리 상한 (전체의 ~80%)."""
-    import torch
-    try:
-        _, total = torch.cuda.mem_get_info()
-        limit = max(1, int(total * 0.80 // (1024 ** 3)))
-        return {0: f"{limit}GiB"}
-    except Exception:
-        return None
 
 
 def load_model(model_name, precision, device="cuda", method="rtn"):
@@ -106,15 +96,14 @@ def load_model(model_name, precision, device="cuda", method="rtn"):
 
     load_kwargs = {"device_map": "auto", "low_cpu_mem_usage": True}
     use_lowbit = method == "rtn" and precision in RTN_BITS
-    if precision == "FP16":
+    if use_lowbit:
+        # T4(14.6GB) 에서 8B fp16(≈15GB) 은 GPU/CPU 어디에도 전체 상주 불가
+        # (ISSUE-CODE-12). 체크포인트 shard 를 스트리밍으로 읽어 Linear 를
+        # 즉시 packed 저비트로 변환 → 상주 메모리는 packed 가중치 + 임베딩뿐.
+        from lowbit import load_lowbit_from_checkpoint
+        return load_lowbit_from_checkpoint(model_name, RTN_BITS[precision], device)
+    elif precision == "FP16":
         load_kwargs["torch_dtype"] = torch.float16
-    elif use_lowbit:
-        # FP16 으로 스트리밍 로드(전부 GPU에 못 올리는 경우를 대비해 상한 설정) 후
-        # Linear 를 packed 저비트로 교체 → 원본 fp16 해제 → GPU 상주.
-        load_kwargs["torch_dtype"] = torch.float16
-        mm = _safe_max_memory()
-        if mm is not None:
-            load_kwargs["max_memory"] = mm
     elif method == "bnb" and precision in ("INT8", "INT4", "FP4"):
         if not HAS_BNB:
             raise RuntimeError(
@@ -137,15 +126,6 @@ def load_model(model_name, precision, device="cuda", method="rtn"):
         raise ValueError(f"({method}) 에서 지원하지 않는 정밀도: {precision}")
 
     model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
-
-    if use_lowbit:
-        from lowbit import quantize_model
-        bits = RTN_BITS[precision]
-        model = quantize_model(model, bits)
-        # packed 저비트 가중치 + 임베딩만 GPU로 이동 (fp16 8B 대비 1/2~1/8 크기)
-        model.to(device)
-        torch.cuda.empty_cache()
-        gc.collect()
 
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(model_name)
