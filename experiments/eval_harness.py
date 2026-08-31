@@ -76,14 +76,66 @@ def load_datasets():
     return found
 
 
-def run_eval(model, tokenizer, device, subset="synthetic", **kw):
-    """통합 평가 진입점. accuracy(%) 반환."""
+def run_arc_easy(tokenizer, model, device, num_questions=100, seed=0, split="test"):
+    """ARC-Easy 표준 객관식(0-shot) 정확도. datasets 설치 필요.
+
+    표준 벤치마크라 문헌 수치와 비교 가능한 accuracy 프록시. 실패 시 None 반환.
+    """
+    import torch
+    try:
+        from datasets import load_dataset
+    except Exception:
+        print("[eval_harness] 'datasets' 미설치 → ARC-Easy 불가")
+        return None
+    try:
+        ds = load_dataset("ai2_arc", "ARC-Easy", split=split)
+    except Exception as e:
+        print(f"[eval_harness] ARC-Easy 로드 실패: {e}")
+        return None
+    import random as _rng
+    rng = _rng.Random(seed)
+    idx = rng.sample(range(len(ds)), min(num_questions, len(ds)))
+
+    letters = "ABCDE"
+    correct = 0
+    with torch.no_grad():
+        for i in idx:
+            item = ds[i]
+            question = item["question"].strip()
+            choices = item["choices"]["text"]
+            labels = item["choices"]["label"]
+            choice_lines = "\n".join(
+                f"{letters[j]}) {choices[j].strip()}" for j in range(len(choices)))
+            prompt = f"Question: {question}\n{choice_lines}\nAnswer:"
+            enc = tokenizer(prompt, return_tensors="pt").to(device)
+            out = model.generate(
+                **enc, max_new_tokens=1, do_sample=False,
+                pad_token_id=tokenizer.eos_token_id)
+            gen = tokenizer.decode(out[0][enc.input_ids.shape[1]:],
+                                   skip_special_tokens=True).strip()
+            pred = gen[0].upper() if gen else ""
+            if pred in letters and pred in labels and pred == item["answerKey"].strip().upper():
+                correct += 1
+            del enc, out
+    return (correct / len(idx)) * 100.0 if idx else 0.0
+
+
+def run_eval(model, tokenizer, device, subset="arc_easy", **kw):
+    """통합 평가 진입점. accuracy(%) 반환.
+
+    subset: 'arc_easy'(표준 0-shot 객관식) | 'synthetic'(내장 합성 논리 태스크).
+    arc_easy 실패(datasets 미설치 등) 시 synthetic 으로 자동 폴백.
+    """
+    if subset == "arc_easy":
+        res = run_arc_easy(tokenizer, model, device, **kw)
+        if res is not None:
+            return res
+        print("[eval_harness] arc_easy 폴백 → synthetic")
+        subset = "synthetic"
     if subset == "synthetic":
         return SyntheticLogicTask(**kw).generate(tokenizer, model, device)
-    # (실측 데이터 확보 시 확장 지점)
     raise NotImplementedError(
-        f"subset={subset} 평가는 데이터셋 준비 후 지원됩니다. "
-        "현재는 'synthetic' 사용.")
+        f"subset={subset} 평가는 지원되지 않습니다. ('arc_easy' | 'synthetic')")
 
 
 if __name__ == "__main__":
