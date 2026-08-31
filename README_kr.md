@@ -137,6 +137,10 @@ python dry_run.py               #    (선택) 통합 파이프라인 검증
 
 ### GPU 실측으로 교체 (GPU 확보 시)
 
+> **무료 Google Colab(T4 16GB) 실측 전 과정은
+> [`docs/colab_execution_guide.md`](docs/colab_execution_guide.md) 참고**
+> (Drive 마운트·설치·모델별 분할 실행·세션 타임아웃 대처·파이프라인 갱신 포함)
+
 ```bash
 python benchmark_driver.py      # 실측 실행 → results_raw.csv 덮어쓰기 (Source=Measured-GPU)
 # 이후 analysis.py → sensitivity.py → make_figures.py 재실행으로 전체 수치·그림 갱신

@@ -137,6 +137,10 @@ python dry_run.py               #    (optional) end-to-end pipeline check
 
 ### Replacing with GPU measurements (when available)
 
+> For a full free-Google-Colab (T4 16GB) measurement run — Drive mount, package
+> install, per-model split execution, session-timeout handling, and pipeline
+> refresh — see [`docs/colab_execution_guide.md`](docs/colab_execution_guide.md).
+
 ```bash
 python benchmark_driver.py      # Measured run → overwrites results_raw.csv (Source=Measured-GPU)
 # Then re-run analysis.py → sensitivity.py → make_figures.py to refresh all numbers and figures
