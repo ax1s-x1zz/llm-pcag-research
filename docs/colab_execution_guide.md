@@ -92,7 +92,7 @@ print("bnb OK", bitsandbytes.__version__)
     --models meta-llama/Llama-3-8B \
     --precisions FP16 INT8 INT4 INT3 INT2 \
     --drive-dir /content/drive/MyDrive/pcag_results \
-    --resume --batch_size 4 --prompts 20 --eval_questions 20
+    --resume --batch_size 4 --prompts 20 --eval_questions 20 --energy_norm
 ```
 
 주요 옵션:
@@ -107,7 +107,8 @@ print("bnb OK", bitsandbytes.__version__)
 | `--batch_size` | 4 | 추론 배치 chunk (T4 OOM 방지, 2로 줄이면 더 안전) |
 | `--prompts` | 20 | 벤치마크 프롬프트 수 |
 | `--eval_questions` | 20 | 합성 정확도 평가 질문 수 |
-| `--no_eval` | off | 정확도 평가 생략 (최대한 빠르게) |
+| `--no_eval` | off | 정확도 평가 생략 → Accuracy는 **빈 값**으로 기록 (분석에서 자동 제외) |
+| `--energy_norm` | off | 측정 에너지를 **J/1,000 tokens** 로 정규화 (문헌 앵커와 단위 일치) |
 | `--tdp` | 자동 | 전력 추정 폴백용 TDP(W) 오버라이드 |
 
 ### 2-2. 4개 모델 개별 실행 (권장 순서)
@@ -241,13 +242,21 @@ setInterval(ClickConnect, 60000)
    `Source=Reference-Literature`. 같은 (모델, 정밀도) 는 실측이 문헌을 **덮어씁니다**.
 2. **부분 혼합 경고**: 한 모델의 정밀도 일부만 실측하면 같은 모델 안에
    문헌·실측이 섞입니다. **한 모델은 5정밀도 전부를 실측**해 완전 교체하세요.
-3. **에너지 단위**: 실측 `Total_Energy_J` 는 "벤치마크 배치 전체(프롬프트×max_new_tokens)
-   소모 에너지"이며, 문헌 앵커의 "J/1,000 tokens"와 절대 기준이 다릅니다.
-   PCAG 는 **상대 비율** 지표이므로 같은 모델 안에서는 기준 차이가 무관합니다.
-4. **전력 계측 폴백**: pynvml/nvidia-smi 가 모두 안 되는 환경에서는
-   torch.cuda 기반 **TDP 추정**(T4=70W)으로 기록됩니다. 논문·그림에서
-   실측/추정 구분을 Notes 에 확인하세요.
-5. **FP16 한계**: T4 16GB 에서 Llama-3-8B FP16(≈16GB)은 VRAM이 빠듯합니다.
+3. **에너지 단위**: 실측 `Total_Energy_J` 는 "벤치마크 배치 전체 소모 에너지"이며,
+   문헌 앵커의 "J/1,000 tokens"와 절대 기준이 다릅니다. **`--energy_norm` 을 켜면**
+   J/1,000 tokens 로 정규화되어 문헌과 단위가 일치합니다. PCAG 는 **상대 비율** 지표이므로
+   같은 모델 안에서는 정규화 여부와 무관합니다.
+4. **정확도는 MMLU 가 아님**: 실측 정확도는 내장 **합성 논리 태스크**(산술 규칙 추종)
+   프록시로, 문헌의 MMLU-style 수치와 **직접 비교하면 안 됩니다**. 모델 내 상대
+   PCAG 구조 해석에만 사용하세요.
+5. **INT3/INT2 는 단순 양자화**: bitsandbytes 가 지원하지 않으므로 `lowbit.py` 의
+   **보정 없는 per-channel RTN** 대칭 양자화로 측정됩니다. GPTQ/AWQ 등 보정 기반
+   문헌 수치와 절대 정확도를 직접 비교하면 안 되며, 각 행 Notes 에
+   `quant=lowbit naive per-channel RTN (uncalibrated, not GPTQ/AWQ)` 가 기록됩니다.
+6. **전력 계측 폴백**: pynvml/nvidia-smi 가 모두 안 되는 환경에서는
+   torch.cuda 기반 **TDP 추정**(T4=70W)으로 기록되며 Notes 에
+   `power=torch.cuda TDP estimate (not real power draw)` 로 명시됩니다.
+7. **FP16 한계**: T4 16GB 에서 Llama-3-8B FP16(≈16GB)은 VRAM이 빠듯합니다.
    OOM 시 `--batch_size 2 --prompts 10 --max_new_tokens 64` 로 줄이거나
    INT8 을 실측 기준으로 삼는 것을 권장합니다.
 

@@ -25,16 +25,26 @@ RNG = np.random.default_rng(42)  # 재현 가능성
 
 def load_csv(path):
     models = {}
+    skipped = 0
     with open(path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             if not r["Precision"]:
                 continue
+            try:
+                acc = float(r["Accuracy_Score"])
+                energy = float(r["Total_Energy_J"])
+            except (TypeError, ValueError):
+                # 정확도/에너지 누락 행 (예: --no_eval 실측) → 민감도 분석에서 제외
+                skipped += 1
+                continue
             models.setdefault(r["Model_Name"], []).append({
                 "precision": r["Precision"],
                 "bits": PREC_BITS[r["Precision"]],
-                "accuracy": float(r["Accuracy_Score"]),
-                "energy": float(r["Total_Energy_J"]),
+                "accuracy": acc,
+                "energy": energy,
             })
+    if skipped:
+        print(f"[sensitivity.load_csv] 데이터 누락 행 {skipped}개 스킵")
     for m in models:
         models[m].sort(key=lambda x: x["bits"], reverse=True)
     return models

@@ -32,18 +32,31 @@ def bit_width(precision):
 
 def load_results(path=CSV_PATH):
     rows = []
+    skipped = 0
     with open(path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             if not r["Precision"]:
                 continue
+            try:
+                acc = float(r["Accuracy_Score"])
+                energy = float(r["Total_Energy_J"])
+                power_w = float(r["Avg_Power_W"])
+                vram = float(r["VRAM_GB"])
+            except (TypeError, ValueError):
+                # 정확도/에너지 누락 행 (예: --no_eval 실측) → 분석에서 제외
+                skipped += 1
+                continue
             rows.append({
                 "precision": r["Precision"],
                 "bits": bit_width(r["Precision"]),
-                "accuracy": float(r["Accuracy_Score"]),
-                "energy": float(r["Total_Energy_J"]),   # J/1000 tokens
-                "power_w": float(r["Avg_Power_W"]),
-                "vram": float(r["VRAM_GB"]),
+                "accuracy": acc,
+                "energy": energy,                 # J/1000 tokens (또는 배치 전체 J)
+                "power_w": power_w,
+                "vram": vram,
             })
+    if skipped:
+        print(f"[load_results] 정확도/에너지 누락 행 {skipped}개 스킵 "
+              "(미완료 측정은 분석에서 제외)")
     # bits 기준 정렬
     rows.sort(key=lambda x: x["bits"], reverse=True)
     return rows

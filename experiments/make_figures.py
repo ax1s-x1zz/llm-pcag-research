@@ -67,18 +67,25 @@ def refresh_footnote():
 
 def load_main():
     rows = []
+    skipped = 0
     with open(CSV_MAIN, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             if r["Precision"]:
-                rows.append({
-                    "precision": r["Precision"], "bits": PREC_BITS[r["Precision"]],
-                    "acc": float(r["Accuracy_Score"]),
-                    "energy": float(r["Total_Energy_J"]),
-                    "power": float(r["Avg_Power_W"]),
-                    "latency": float(r["Latency_ms"]),
-                    "tps": float(r["Throughput_tps"]),
-                    "vram": float(r["VRAM_GB"]),
-                })
+                try:
+                    rows.append({
+                        "precision": r["Precision"], "bits": PREC_BITS[r["Precision"]],
+                        "acc": float(r["Accuracy_Score"]),
+                        "energy": float(r["Total_Energy_J"]),
+                        "power": float(r["Avg_Power_W"]),
+                        "latency": float(r["Latency_ms"]),
+                        "tps": float(r["Throughput_tps"]),
+                        "vram": float(r["VRAM_GB"]),
+                    })
+                except (TypeError, ValueError):
+                    # 정확도/에너지 누락 행 (예: --no_eval 실측) → 그림에서 제외
+                    skipped += 1
+    if skipped:
+        print(f"[make_figures.load_main] 데이터 누락 행 {skipped}개 스킵")
     rows.sort(key=lambda x: -x["bits"])
     P0, A0 = rows[0]["energy"], rows[0]["acc"]
     for r in rows:
@@ -91,14 +98,20 @@ def load_main():
 
 def load_multi():
     models = {}
+    skipped = 0
     with open(CSV_MULTI, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             if r["Precision"]:
-                models.setdefault(r["Model_Name"], []).append({
-                    "precision": r["Precision"], "bits": PREC_BITS[r["Precision"]],
-                    "acc": float(r["Accuracy_Score"]),
-                    "energy": float(r["Total_Energy_J"]),
-                })
+                try:
+                    models.setdefault(r["Model_Name"], []).append({
+                        "precision": r["Precision"], "bits": PREC_BITS[r["Precision"]],
+                        "acc": float(r["Accuracy_Score"]),
+                        "energy": float(r["Total_Energy_J"]),
+                    })
+                except (TypeError, ValueError):
+                    skipped += 1
+    if skipped:
+        print(f"[make_figures.load_multi] 데이터 누락 행 {skipped}개 스킵")
     out = {}
     for m, pts in models.items():
         pts.sort(key=lambda x: -x["bits"])
