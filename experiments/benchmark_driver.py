@@ -261,6 +261,8 @@ def main():
                     help="--resume 이어도 완료분 재측정")
     ap.add_argument("--tdp", type=float, default=None,
                     help="torch.cuda 기반 전력 추정 폴백 시 TDP(W) 오버라이드")
+    ap.add_argument("--energy_norm", action="store_true",
+                    help="측정 에너지를 J/1,000 tokens 로 정규화 (문헌 앵커와 단위 일치)")
     ap.add_argument("--notes", default="Colab T4 GPU 실측 (Source=Measured-GPU)")
     args = ap.parse_args()
 
@@ -304,39 +306,64 @@ def main():
             model, tokenizer = load_model(model_name, prec, device)
             warmup(model, tokenizer, device, batch_size=args.batch_size)
 
+            bench = {}
+
             def _bench():
-                return run_inference(model, tokenizer, prompts,
-                                     args.max_new_tokens, device, args.batch_size)
+                # 전력 계측과 성능 측정을 동일 호출에서 수행 (에너지-성능 정합)
+                bench["res"] = run_inference(model, tokenizer, prompts,
+                                             args.max_new_tokens, device, args.batch_size)
+                return bench["res"]
 
             torch.cuda.reset_peak_memory_stats()
             t0 = time.time()
             if meter.available:
                 avg_power, energy = meter.measure(_bench)
-                latency, tps, total_new = _bench()  # 별도 호출로 성능치 확보
             else:
                 avg_power, energy = None, None
-                latency, tps, total_new = _bench()
+                _bench()
+            latency, tps, total_new = bench.get("res", (None, None, None))
             dt = time.time() - t0
             vram = measure_vram_gb()
 
             # torch.cuda 기반 전력/에너지 추정 폴백 (pynvml/nvidia-smi 실패 시)
+            power_estimated = False
             if avg_power is None or energy is None:
                 est_p, est_e = meter.estimate(dt, tdp=args.tdp)
                 if est_p is not None:
+                    power_estimated = True
                     if avg_power is None:
                         avg_power = est_p
                     if energy is None:
                         energy = est_e
             if energy is None and avg_power is not None:
                 energy = avg_power * dt
+            # 에너지 단위 정규화: 배치 전체 J → J/1,000 tokens (문헌 앵커와 비교 가능)
+            energy_norm = False
+            if args.energy_norm and energy is not None and total_new:
+                energy = energy * 1000.0 / max(1, total_new)
+                energy_norm = True
 
             accuracy = None
             if not args.no_eval:
                 accuracy = eval_harness.run_eval(
                     model, tokenizer, device, subset=args.eval_subset,
                     num_questions=args.eval_questions)
-            else:
-                accuracy = 0.0  # 평가 생략 시 스키마 정합용 자리값(분석 제외 대상 아님)
+            # --no_eval 시 Accuracy_Score 는 빈 값으로 기록 → 분석 단계에서 스킵.
+            # (0.0 을 넣으면 A0=0 이 되어 Power Wall 판정 전체가 붕괴하므로 금지)
+
+            notes = (
+                f"{args.notes}. max_new_tokens={args.max_new_tokens}, "
+                f"prompts={args.prompts}, batch={args.batch_size}, "
+                f"eval={args.eval_subset if not args.no_eval else 'skipped'}, "
+                f"eval_questions={args.eval_questions if not args.no_eval else 0}"
+            )
+            if prec in ("INT3", "INT2"):
+                notes += (f", quant=lowbit naive per-channel RTN {prec} "
+                          "(uncalibrated, not GPTQ/AWQ)")
+            if energy_norm:
+                notes += ", E=J/1000 tokens"
+            if power_estimated:
+                notes += ", power=torch.cuda TDP estimate (not real power draw)"
 
             row = {
                 "Precision": prec,
@@ -345,14 +372,10 @@ def main():
                 "Throughput_tps": round(tps, 4),
                 "Avg_Power_W": round(avg_power, 2) if avg_power else "",
                 "Total_Energy_J": round(energy, 2) if energy else "",
-                "Accuracy_Score": round(accuracy, 3),
+                "Accuracy_Score": round(accuracy, 3) if accuracy is not None else "",
                 "VRAM_GB": round(vram, 3) if vram else "",
                 "Source": "Measured-GPU",
-                "Notes": (
-                    f"{args.notes}. max_new_tokens={args.max_new_tokens}, "
-                    f"prompts={args.prompts}, batch={args.batch_size}, "
-                    f"eval_questions={args.eval_questions if not args.no_eval else 0}"
-                ),
+                "Notes": notes,
             }
             # 매 측정 즉시 저장 (세션 끊김 대비 체크포인트)
             upsert_row(args.output, row)
@@ -366,7 +389,8 @@ def main():
             save_checkpoint(checkpoint_path, completed)
             copy_to_drive(checkpoint_path, args.drive_dir)
 
-            print(f"{prec}: acc={accuracy:.2f}% latency={latency:.2f}ms/tok "
+            acc_str = f"{accuracy:.2f}%" if accuracy is not None else "n/a"
+            print(f"{prec}: acc={acc_str} latency={latency:.2f}ms/tok "
                   f"tps={tps:.1f} power={avg_power}W energy={energy}J vram={vram}GB")
             print(f"  [save] {args.output} + checkpoint")
 
