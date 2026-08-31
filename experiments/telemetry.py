@@ -1,6 +1,8 @@
 # experiments/telemetry.py
 # GPU 전원/성능 계측 모듈.
-# - PyNVML 우선 사용, 실패 시 nvidia-smi 파싱으로 폴백.
+# - PyNVML 우선 사용, 실패 시 nvidia-smi CLI 파싱으로 폴백.
+# - PyNVML·nvidia-smi 모두 불가(Colab 환경 등) 시 torch.cuda 기반 TDP 추정 폴백
+#   (PowerMeter.estimate) — 실측이 아닌 추정임을 호출부에서 Source 주석으로 명시.
 # - CPU 전용 폴백(전원 계측 불가) 경고와 함께 에너지 모델 추정도 제공.
 import time
 import os
@@ -13,6 +15,26 @@ try:
 except Exception:
     HAS_PYNVML = False
 
+# GPU TDP 상수표 (torch.cuda 기반 전력 추정 폴백용).
+# Colab 무료 등급(T4) 포함 주요 GPU 의 전형적 TDP(W).
+TDP_TABLE = {
+    "Tesla T4": 70.0, "T4": 70.0,
+    "Tesla P100": 250.0, "Tesla V100": 300.0, "Tesla K80": 300.0,
+    "A100": 400.0, "A10G": 150.0, "L4": 72.0,
+    "RTX 4090": 450.0, "RTX 4080": 320.0, "RTX 3090": 350.0,
+    "RTX 3080": 320.0, "RTX 3060": 170.0, "RTX 2080 Ti": 250.0,
+    "RTX 2080": 215.0, "RTX 2070": 175.0, "RTX 2060": 160.0,
+    "GTX 1080 Ti": 250.0,
+}
+
+
+def _tdp_from_name(name):
+    """GPU 이름 문자열에서 TDP 후보 탐색. 미지정 시 None."""
+    for key, w in TDP_TABLE.items():
+        if key in name:
+            return w
+    return None
+
 
 class PowerMeter:
     """GPU 전원 계측기.
@@ -21,6 +43,7 @@ class PowerMeter:
     - PyNVML: powerDraw(W)를 주기 샘플링하여 사다리꼴 적분.
     - nvidia-smi 폴백: --query-gpu=power.draw --format=csv,noheader,nounits
     - 계측 불가 환경: (None, None) 반환하며 calling code가 에너지 모델을 쓰도록 함.
+    estimate(): torch.cuda 기반 TDP 추정 폴백 (실계측 불가 시 호출).
     """
 
     def __init__(self, sample_interval=0.05):
@@ -62,6 +85,28 @@ class PowerMeter:
     @property
     def available(self):
         return self._use_pynvml or self._use_smi
+
+    def estimate(self, elapsed_seconds, tdp=None):
+        """torch.cuda 기반 전력/에너지 추정 (실계측 불가 환경의 최종 폴백).
+
+        Colab 등에서 pynvml 초기화 실패 + nvidia-smi 미가용일 때,
+        torch.cuda 로 GPU 이름을 얻어 TDP 상수표에서 전형 전력(W)을 찾고,
+        측정 구간 전체를 busy 로 가정해 E[J] = P[W] × t[s] 로 추정한다.
+
+        반환: (est_power_W, est_energy_J). torch.cuda 미가용 시 (None, None).
+        """
+        try:
+            import torch
+        except Exception:
+            return None, None
+        if not torch.cuda.is_available():
+            return None, None
+        name = torch.cuda.get_device_name(0)
+        power = tdp or _tdp_from_name(name)
+        if power is None:
+            # 미식별 GPU: T4급(70W) 기본 가정 (Colab 무료 등급의 전형치)
+            power = 70.0
+        return float(power), float(power * max(0.0, elapsed_seconds))
 
     def measure(self, fn, *args, **kwargs):
         """fn 실행 중 전력을 샘플링하여 (avg_power_W, total_energy_J) 반환."""
