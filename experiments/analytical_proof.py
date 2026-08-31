@@ -34,7 +34,8 @@ CSV_MAIN = os.path.join(HERE, "results_raw.csv")
 OUT_JSON = os.path.join(HERE, "analysis_proof.json")
 OUT_MD = os.path.normpath(os.path.join(HERE, "..", "docs", "proof_3_1_derivation.md"))
 
-PREC_BITS = {"FP16": 16, "INT8": 8, "INT4": 4, "INT3": 3, "INT2": 2}
+PREC_BITS = {"FP16": 16, "INT8": 8, "INT6": 6, "INT5": 5, "INT4": 4,
+             "INT3": 3, "INT2": 2, "FP4": 4}
 X_OBS_MIN = 8.0   # 관측 도메인: INT8(x=8) ~ INT2(x=14)
 
 

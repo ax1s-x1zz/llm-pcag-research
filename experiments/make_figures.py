@@ -24,9 +24,11 @@ FIG_DIR = os.path.normpath(os.path.join(HERE, "..", "docs", "figures"))
 CSV_MAIN = os.path.join(HERE, "results_raw.csv")
 CSV_MULTI = os.path.join(HERE, "results_multimodel_raw.csv")
 
-PREC_BITS = {"FP16": 16, "INT8": 8, "INT4": 4, "INT3": 3, "INT2": 2}
-PCOLOR = {"FP16": "#1f77b4", "INT8": "#2ca02c", "INT4": "#d62728",
-          "INT3": "#ff7f0e", "INT2": "#8c564b"}
+PREC_BITS = {"FP16": 16, "INT8": 8, "INT6": 6, "INT5": 5, "INT4": 4,
+             "INT3": 3, "INT2": 2, "FP4": 4}
+PCOLOR = {"FP16": "#1f77b4", "INT8": "#2ca02c", "INT6": "#17becf",
+          "INT5": "#bcbd22", "INT4": "#d62728", "INT3": "#ff7f0e",
+          "INT2": "#8c564b", "FP4": "#9467bd"}
 MCOLOR = {"meta-llama/Llama-3-8B": "#1f77b4", "Qwen/Qwen2.5-7B": "#2ca02c",
           "google/gemma-2-9b": "#9467bd", "mistralai/Mistral-7B": "#ff7f0e"}
 MSHORT = {"meta-llama/Llama-3-8B": "Llama-3-8B", "Qwen/Qwen2.5-7B": "Qwen-2.5-7B",
@@ -157,23 +159,40 @@ def pcag_curve(x, p):
     return s_curve(x, p) / l_curve(x, p)
 
 
+def wall_energy_span(rows, asum):
+    """analysis_summary 의 power_wall(bits) → 측정 에너지 구간 [E_lo, E_hi]."""
+    if not asum or not asum.get("power_wall"):
+        return None
+    wall = asum["power_wall"]
+    hi_bits, lo_bits = wall["from_bits"], wall["to_bits"]
+    e = {r["bits"]: r["energy"] for r in rows}
+    if lo_bits in e and hi_bits in e:
+        return sorted([e[lo_bits], e[hi_bits]])
+    return None
+
+
 # ============================================================== Fig 1
-def fig1(rows, P0, A0):
+def fig1(rows, P0, A0, asum=None):
     fig, ax = plt.subplots(figsize=(7.2, 5.2))
+    Emax = max(r["energy"] for r in rows) * 1.04
+    Emin = min(r["energy"] for r in rows) * 0.96
+    E = np.linspace(Emin, Emax, 100)
     # iso-PCAG 라인 (직선): A(E) = A0 (1 - (P0-E)/(P0*c))
-    E = np.linspace(40, 150, 100)
-    for c, lab in [(40, "PCAG=40"), (20, "20"), (10, "10"), (5, "5"), (2.2, "2.2")]:
+    cvals = np.linspace(1.0, 5.0, 5)
+    for c, lab in zip(cvals, [f"PCAG={c:.1f}" for c in cvals]):
         A = A0 * (1 - (P0 - E) / (P0 * c))
         ax.plot(E, A, ls="--", lw=0.9, color="#bbb", zorder=1)
-        # 라벨은 왼쪽 끝(E=45)에 정렬해 FP16 포인트와 겹침 방지
-        y_lab = A0 * (1 - (P0 - 45) / (P0 * c))
-        if 43 < y_lab < 70:
-            ax.annotate(lab, xy=(45, y_lab), fontsize=8, color="#999",
+        y_lab = A0 * (1 - (P0 - Emin) / (P0 * c))
+        if min(A) < max(r["acc"] for r in rows) * 1.1:
+            ax.annotate(lab, xy=(Emin, y_lab), fontsize=8, color="#999",
                         va="bottom", ha="left")
-    # Power Wall zone (b 3~4: 에너지 61→54 J)
-    ax.axvspan(54, 61, color="#d62728", alpha=0.07, zorder=0)
-    ax.annotate("Power Wall\nzone", xy=(57.5, 49.5), ha="center", fontsize=9,
-                color="#d62728", fontweight="bold")
+    # Power Wall zone: 측정 에너지 구간 (bits 로부터)
+    span = wall_energy_span(rows, asum)
+    if span:
+        ax.axvspan(span[0], span[1], color="#d62728", alpha=0.07, zorder=0)
+        ax.annotate("Power Wall\nzone", xy=((span[0] + span[1]) / 2,
+                                            min(r["acc"] for r in rows) * 0.88),
+                    ha="center", fontsize=9, color="#d62728", fontweight="bold")
     xs = [r["energy"] for r in rows]
     ys = [r["acc"] for r in rows]
     ax.plot(xs, ys, "-", color="#555", lw=1.5, zorder=2)
@@ -184,21 +203,24 @@ def fig1(rows, P0, A0):
                     (r["energy"], r["acc"]), textcoords="offset points",
                     xytext=(10, -14), fontsize=8.5,
                     color=PCOLOR[r["precision"]], fontweight="bold")
-    ax.annotate("", xy=(58, 47.6), xytext=(135, 66.2),
+    xm = np.mean(xs)
+    ym = np.mean(ys)
+    ax.annotate("", xy=(xs[-1] - (xs[0] - xs[-1]) * 0.25, ys[-1] + 0.3 * (ys[0] - ys[-1])),
+                xytext=(xs[0] - (xs[0] - xs[-1]) * 0.25, ys[0] - 0.3 * (ys[0] - ys[-1])),
                 arrowprops=dict(arrowstyle="-|>", color="#666", lw=1.6,
                                 connectionstyle="arc3,rad=0.15"))
-    ax.text(103, 56.5, "quantization\ndirection", fontsize=9, color="#666",
+    ax.text(xm, ym, "quantization\ndirection", fontsize=9, color="#666",
             ha="center")
     ax.set_xlabel("Energy (J / 1,000 tokens)")
     ax.set_ylabel("Inference accuracy (%)")
     ax.set_title("Fig 1. Accuracy–Energy Frontier across Quantization (Llama-3-8B)")
-    ax.set_xlim(42, 152)
+    ax.set_xlim(Emin - 4, Emax + 4)
     fig.tight_layout(rect=[0, 0.02, 1, 1])
     save(fig, "fig1_accuracy_vs_energy")
 
 
 # ============================================================== Fig 2
-def fig2(rows, proof):
+def fig2(rows, proof, asum=None):
     fig, ax = plt.subplots(figsize=(7.2, 5.2))
     pts = [(r["bits"], r["pcag"]) for r in rows if r["pcag"]]
     pts = sorted(pts)  # PCHIP: strictly increasing x 필요
@@ -206,28 +228,54 @@ def fig2(rows, proof):
     ys = [p[1] for p in pts]
     from scipy.interpolate import PchipInterpolator
     interp = PchipInterpolator(np.array(bs, float), np.array(ys, float))
-    grid = np.linspace(2, 8, 300)
-    ax.fill_between([3, 4], 0, 24, color="#d62728", alpha=0.08, zorder=0)
+    bmin, bmax = min(bs), max(bs)
+    grid = np.linspace(bmin, bmax, 300)
+    ymax = max(ys) * 1.3
+    # Power Wall zone: analysis_summary 의 wall bits (없으면 데이터의 최대 기울기 구간)
+    wall_bits = None
+    slope_str = ""
+    if asum and asum.get("power_wall"):
+        wall_bits = (asum["power_wall"]["from_bits"], asum["power_wall"]["to_bits"])
+        slope_str = f", slope {asum['power_wall']['slope_per_bit']:.2f}/bit"
+    elif len(pts) >= 2:
+        # 최대 |ΔPCAG/Δb| 구간을 wall 후보로
+        segs = [(abs(ys[i + 1] - ys[i]) / (bs[i] - bs[i + 1]), bs[i + 1], bs[i])
+                for i in range(len(pts) - 1)]
+        s, lo, hi = max(segs)
+        wall_bits = (lo, hi)
+        slope_str = f", slope {s:.2f}/bit"
+    if wall_bits:
+        lo, hi = sorted(wall_bits)
+        ax.fill_between([lo, hi], 0, ymax, color="#d62728", alpha=0.08, zorder=0)
+        ax.text((lo + hi) / 2, ymax * 0.05, f"POWER WALL ZONE\n(b ∈ [{lo}, {hi}])",
+                ha="center", fontsize=9.5, color="#d62728", fontweight="bold")
     ax.plot(grid, interp(grid), color="#d62728", lw=1.4, ls=":", zorder=1)
     ax.plot(bs, ys, "-o", color="#d62728", lw=2.5, ms=9, zorder=2,
             markeredgecolor="white")
     for b, y, r in zip(bs, ys, [r for r in rows if r["pcag"]]):
         ax.annotate(r["precision"], (b, y), textcoords="offset points",
                     xytext=(0, 9), ha="center", fontsize=10, fontweight="bold")
-    # cliff 화살표/주석
-    ax.annotate("", xy=(3.15, 4.9), xytext=(3.9, 10.2),
-                arrowprops=dict(arrowstyle="-|>", color="#111", lw=1.8))
-    ax.text(3.52, 8.2, "−54.4%\n(PCAG cliff)", fontsize=9.5, ha="center",
-            fontweight="bold")
-    ax.axvline(4.19, color="#111", ls="--", lw=1.5)
-    ax.text(4.19, 22.3, "analytic b*=4.19", rotation=90, va="top", ha="right",
-            fontsize=8.5, color="#111")
-    ax.text(3.5, 1.2, "POWER WALL ZONE\n(b ∈ [3, 4])", ha="center", fontsize=9.5,
-            color="#d62728", fontweight="bold")
+    # cliff 화살표/주석 (가장 큰 PCAG 감소 구간)
+    if len(pts) >= 2:
+        drops = [(ys[i] - ys[i + 1], bs[i], ys[i], bs[i + 1], ys[i + 1])
+                 for i in range(len(pts) - 1)]
+        drop, b_hi, y_hi, b_lo, y_lo = max(drops)
+        if drop > 0:
+            ax.annotate("", xy=(b_lo + 0.1, y_lo + ymax * 0.12),
+                        xytext=(b_hi - 0.1, y_hi),
+                        arrowprops=dict(arrowstyle="-|>", color="#111", lw=1.8))
+            ax.text((b_hi + b_lo) / 2, y_hi - ymax * 0.18,
+                    f"−{drop / max(ys) * 100:.0f}%\n(PCAG cliff)", fontsize=9.5,
+                    ha="center", fontweight="bold")
+    b_star = proof["inflection_condition_3_1"]["b_star_primary"]
+    if b_star is not None:
+        ax.axvline(b_star, color="#111", ls="--", lw=1.5)
+        ax.text(b_star, ymax * 0.92, f"analytic b*={b_star:.2f}", rotation=90,
+                va="top", ha="right", fontsize=8.5, color="#111")
     ax.set_xlabel("Weight bit precision, b (bits)")
     ax.set_ylabel("PCAG  =  rel. power saving / rel. accuracy loss")
-    ax.set_title("Fig 2. PCAG Collapse — the Power Wall (θ=3, slope 5.68/bit at INT4→INT3)")
-    ax.set_ylim(0, 24)
+    ax.set_title(f"Fig 2. PCAG Collapse — the Power Wall (θ=3{slope_str})")
+    ax.set_ylim(0, ymax)
     fig.tight_layout(rect=[0, 0.02, 1, 1])
     save(fig, "fig2_pcag_power_wall")
 
@@ -354,7 +402,8 @@ def fig6(rows, proof):
         ax.annotate(r["precision"], (r["x"], r["L"]),
                     textcoords="offset points", xytext=(0, -14), ha="center",
                     fontsize=8.5, color="#d62728", fontweight="bold")
-    xw = 16 - 4.19
+    b_star = proof["inflection_condition_3_1"]["b_star_primary"]
+    xw = 16 - b_star if b_star is not None else 16 - 4.19
     ax.axvline(xw, color="#111", ls="--", lw=1.4)
     ax.annotate("Power Wall:\nloss acceleration\noutpaces saving saturation",
                 xy=(xw, 0.32), xytext=(6.2, 0.46), fontsize=9.5,
@@ -423,7 +472,7 @@ def fig8(multi):
 
 
 # ============================================================== Fig 9
-def fig9(sens):
+def fig9(sens, rows):
     g = sens["jevons_grid"]
     mat = np.array(g["load_change_pct_matrix"])
     e_d = np.array(g["e_d_grid"])
@@ -437,9 +486,12 @@ def fig9(sens):
     ax.annotate("$E_d$ = 1 boundary\n(Jevons threshold)", xy=(38, 1.0),
                 xytext=(24, 1.22), fontsize=10, fontweight="bold",
                 arrowprops=dict(arrowstyle="->", lw=1.2, color="#111"))
-    ax.scatter([56.4], [1.5], s=130, marker="*", color="#111", zorder=5)
-    ax.annotate("INT4 (Llama-3-8B)\n+49%", (56.4, 1.5), xytext=(44, 1.95),
-                fontsize=9, arrowprops=dict(arrowstyle="->", lw=1))
+    # INT4 시나리오 점: 측정 데이터에서 계산 (E_d=1.5)
+    s4 = next((r["S"] * 100 for r in rows if r["precision"] == "INT4"), 56.4)
+    load4 = ((1 - s4 / 100) ** (1 - 1.5) - 1) * 100
+    ax.scatter([s4], [1.5], s=130, marker="*", color="#111", zorder=5)
+    ax.annotate(f"INT4 (Llama-3-8B)\n{load4:+.0f}%", (s4, 1.5),
+                xytext=(44, 1.95), fontsize=9, arrowprops=dict(arrowstyle="->", lw=1))
     cb = fig.colorbar(im, ax=ax, pad=0.015)
     cb.set_label("Total grid load change (%)")
     ax.set_xlabel("Energy cost reduction per token, s (%)")
@@ -487,25 +539,37 @@ def scen_points(rows):
 
 
 # ============================================================== Fig 11
-def fig11(sens, proof):
+def fig11(sens, proof, asum=None):
     samples = sens["_mc_inflection_samples"]
     mc = sens["monte_carlo"]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.6),
                                    gridspec_kw={"width_ratios": [1.4, 1]})
     ax1.hist(samples, bins=36, color="#1f77b4", alpha=0.8, edgecolor="white")
-    ax1.axvline(3.51, color="#d62728", lw=2, ls="--",
-                label="empirical PCHIP: 3.51")
-    ax1.axvline(proof["inflection_condition_3_1"]["b_star_primary"], color="#111",
-                lw=2, ls="-.", label="analytic model: 4.19")
+    # 경험적 PCHIP 변곡점: analysis_summary 에서 (없으면 기존 문헌값)
+    emp = None
+    if asum and asum.get("continuous_inflection"):
+        cands = asum["continuous_inflection"].get("second_derivative_zero_candidates_bits")
+        if cands:
+            emp = cands[0]
+    emp = emp or 3.51
+    ax1.axvline(emp, color="#d62728", lw=2, ls="--",
+                label=f"empirical PCHIP: {emp:.2f}")
+    b_star = proof["inflection_condition_3_1"]["b_star_primary"]
+    ax1.axvline(b_star, color="#111",
+                lw=2, ls="-.", label=f"analytic model: {b_star:.2f}" if b_star else "analytic n/a")
     ax1.axvline(mc["inflection_bits"]["mean"], color="#2ca02c", lw=2,
                 label=f"MC mean: {mc['inflection_bits']['mean']}")
     ax1.set_xlabel("Inflection point b* (bits) — condition [3.1]")
     ax1.set_ylabel("Monte Carlo count")
-    ax1.set_title("(a) Inflection point under anchor noise (σ=3%, N=3000)")
+    ax1.set_title("(a) Inflection point under measured-data noise (σ=3%, N=3000)")
     ax1.legend(fontsize=9)
     trans = list(mc["wall_transition_prob"].keys())
     probs = [mc["wall_transition_prob"][t] for t in trans]
-    cols = ["#d62728" if t == "INT4->INT3" else "#999" for t in trans]
+    wall_trans = "INT4->INT3"
+    if asum and asum.get("power_wall"):
+        wall_trans = (f"{asum['power_wall']['from']}->"
+                      f"{asum['power_wall']['to']}")
+    cols = ["#d62728" if t == wall_trans else "#999" for t in trans]
     bars = ax2.barh(trans, probs, color=cols, alpha=0.88, edgecolor="white")
     for b, v in zip(bars, probs):
         ax2.annotate(f"{v*100:.1f}%", (v, b.get_y() + b.get_height() / 2),
@@ -610,16 +674,18 @@ def fig13(rows, proof):
 
 
 # ============================================================== Fig 14
-def fig14(rows, P0, A0):
+def fig14(rows, P0, A0, asum=None):
     fig, ax = plt.subplots(figsize=(7.6, 5.4))
     P0, A0 = rows[0]["energy"], rows[0]["acc"]
-    E = np.linspace(45, 145, 200)
+    Emax = max(r["energy"] for r in rows) * 1.02
+    Emin = min(r["energy"] for r in rows) * 0.98
+    E = np.linspace(Emin, Emax, 200)
     for c, alpha in [(40, 0.5), (20, 0.5), (10, 0.5), (5, 0.5), (2.2, 0.5)]:
         A = A0 * (1 - (P0 - E) / (P0 * c))
         ax.plot(E, A, ls="--", lw=0.9, color="#aaa", zorder=1)
-        if E[-1] > 40:
-            ax.annotate(f"PCAG={c}", (E[np.argmin(np.abs(E - 132))],
-                        A0 * (1 - (P0 - 132) / (P0 * c))),
+        if Emax > Emin:
+            ax.annotate(f"PCAG={c}", (E[np.argmin(np.abs(E - Emax * 0.94))],
+                        A0 * (1 - (P0 - Emax * 0.94) / (P0 * c))),
                         fontsize=8, color="#888", rotation=-18)
     ax.plot([r["energy"] for r in rows], [r["acc"] for r in rows], "-o",
             color="#1f77b4", lw=2.5, ms=9, zorder=3, markeredgecolor="white",
@@ -628,11 +694,14 @@ def fig14(rows, P0, A0):
         ax.annotate(r["precision"], (r["energy"], r["acc"]),
                     textcoords="offset points", xytext=(7, -3), fontsize=9.5,
                     fontweight="bold", color=PCOLOR[r["precision"]])
-    ax.axvspan(54, 61, color="#d62728", alpha=0.07)
-    ax.annotate("Power Wall:\nmax efficiency loss\nper additional bit removed",
-                xy=(57.5, 60.5), xytext=(78, 56.5), fontsize=9.5,
-                arrowprops=dict(arrowstyle="->", lw=1.1, color="#d62728"),
-                color="#d62728")
+    span = wall_energy_span(rows, asum)
+    if span:
+        ax.axvspan(span[0], span[1], color="#d62728", alpha=0.07)
+        ax.annotate("Power Wall:\nmax efficiency loss\nper additional bit removed",
+                    xy=((span[0] + span[1]) / 2, min(r["acc"] for r in rows) * 0.9),
+                    xytext=((span[0] + span[1]) / 2 + 12, min(r["acc"] for r in rows) * 0.8),
+                    fontsize=9.5, arrowprops=dict(arrowstyle="->", lw=1.1,
+                                                  color="#d62728"), color="#d62728")
     ax.set_xlabel("Energy (J / 1,000 tokens)")
     ax.set_ylabel("Accuracy (%)")
     ax.set_title("Fig 14. Efficiency Frontier with iso-PCAG contours")
@@ -680,17 +749,21 @@ def fig15(rows, multi, jev):
                     va="bottom", fontsize=9.5, fontweight="bold")
     ax.set_title("(c) Accuracy retention at INT4", fontsize=11)
     ax.set_ylim(85, 100)
-    # (d) wall slopes
+    # (d) wall slopes — 데이터에서 계산 (FP16 기준 PCAG의 |Δ/Δb|)
     ax = axes[1, 1]
-    trans = ["INT8→INT4", "INT4→INT3", "INT3→INT2"]
-    slopes = [2.580, 5.682, 2.561]
-    cols = ["#2ca02c", "#d62728", "#2ca02c"]
+    pcag_rows = [r for r in rows if r["pcag"]]
+    trans, slopes = [], []
+    for i in range(len(pcag_rows) - 1):
+        a, b = pcag_rows[i], pcag_rows[i + 1]  # bits 내림차순
+        trans.append(f"{a['precision']}→{b['precision']}")
+        slopes.append(abs((b["pcag"] - a["pcag"]) / (a["bits"] - b["bits"])))
+    cols = ["#d62728" if s > 3.0 else "#2ca02c" for s in slopes]
     bars = ax.bar(trans, slopes, color=cols, alpha=0.9, edgecolor="white")
     for b, v in zip(bars, slopes):
         ax.annotate(f"{v:.2f}", (b.get_x() + b.get_width() / 2, v), ha="center",
                     va="bottom", fontsize=9.5, fontweight="bold")
     ax.axhline(3.0, color="#111", ls="--", lw=1.6)
-    ax.text(2.45, 3.12, "θ=3", fontsize=9.5, fontweight="bold")
+    ax.text(0.35, 3.12, "θ=3", fontsize=9.5, fontweight="bold")
     ax.set_title("(d) Per-bit PCAG slope vs θ (condition [3.2])", fontsize=11)
     ax.set_ylabel("|ΔPCAG/Δb|")
     fig.suptitle("Fig 15. PCAG Research Overview — Power Wall & Jevons Paradox",
@@ -728,19 +801,28 @@ def fig16(sens):
     save(fig, "fig16_jevons_surface")
 
 
-# ============================================================== Fig 17 (legacy upg: wall zone summary)
-def fig17(rows, sens, proof):
+# ============================================================== Fig 17 (wall summary)
+def fig17(rows, sens, proof, asum=None):
     """Fig 17: Power Wall 판정 요약 타임라인 (3 독립 경로 비교)."""
     fig, ax = plt.subplots(figsize=(8.6, 3.6))
     mc = sens["monte_carlo"]["inflection_bits"]
+    # 경험적 PCHIP 변곡점: analysis_summary 에서 (없으면 기존 문헌값)
+    emp = None
+    if asum and asum.get("continuous_inflection"):
+        cands = asum["continuous_inflection"].get("second_derivative_zero_candidates_bits")
+        if cands:
+            emp = cands[0]
+    emp = emp or 3.51
+    b_star = proof["inflection_condition_3_1"]["b_star_primary"]
     paths = [
-        ("Empirical PCHIP\n(analysis.py)", 3.51, 0, "#1f77b4"),
+        ("Empirical PCHIP\n(analysis.py)", emp, 0, "#1f77b4"),
         ("Monte Carlo σ=3%\n(N=3000)", mc["mean"], mc["std"], "#2ca02c"),
-        ("Analytic model\n(Weibull+logistic)", proof["inflection_condition_3_1"]["b_star_primary"],
-         0, "#d62728"),
+        ("Analytic model\n(Weibull+logistic)", b_star, 0, "#d62728"),
     ]
     for i, (name, b, sd, col) in enumerate(paths):
         y = len(paths) - 1 - i
+        if b is None:
+            continue
         if sd:
             ax.errorbar([b], [y], xerr=[[sd], [sd]], fmt="o", color=col,
                         ms=11, capsize=5, lw=2)
@@ -751,8 +833,15 @@ def fig17(rows, sens, proof):
         ax.annotate(f"{name}: b*={b:.2f}" + (f" ± {sd:.2f}" if sd else ""),
                     (b, y), xytext=(dx, 0), textcoords="offset points",
                     ha=ha, va="center", fontsize=9.5)
-    ax.axvspan(3, 4, color="#d62728", alpha=0.08)
-    ax.text(3.5, 2.45, "INT4→INT3 transition", ha="center", fontsize=9.5,
+    # Power Wall 구간: analysis_summary 의 wall bits (기본 INT4→INT3 = [3,4])
+    wall_span = (3, 4)
+    wall_label = "INT4→INT3 transition"
+    if asum and asum.get("power_wall"):
+        wall_span = (asum["power_wall"]["to_bits"], asum["power_wall"]["from_bits"])
+        wall_label = (f"{asum['power_wall']['from']}→"
+                      f"{asum['power_wall']['to']} transition")
+    ax.axvspan(min(wall_span), max(wall_span), color="#d62728", alpha=0.08)
+    ax.text(sum(wall_span) / 2, 2.45, wall_label, ha="center", fontsize=9.5,
             color="#d62728", fontweight="bold")
     ax.set_yticks([])
     ax.set_ylim(-0.6, 2.7)
@@ -772,23 +861,25 @@ def main():
     sens = load_json("sensitivity_summary.json")
     proof = load_json("analysis_proof.json")
     jev = load_json("jevons_summary.json")
-    fig1(rows, P0, A0)
-    fig2(rows, proof)
+    asum = load_json("analysis_summary.json") if os.path.exists(
+        os.path.join(HERE, "analysis_summary.json")) else None
+    fig1(rows, P0, A0, asum)
+    fig2(rows, proof, asum)
     fig3(jev, rows)
     fig4(rows)
     fig5(rows)
     fig6(rows, proof)
     fig7(multi)
     fig8(multi)
-    fig9(sens)
+    fig9(sens, rows)
     fig10(sens, rows)
-    fig11(sens, proof)
+    fig11(sens, proof, asum)
     fig12(sens)
     fig13(rows, proof)
-    fig14(rows, P0, A0)
+    fig14(rows, P0, A0, asum)
     fig15(rows, multi, jev)
     fig16(sens)
-    fig17(rows, sens, proof)
+    fig17(rows, sens, proof, asum)
     print("=== 완료: docs/figures/ 확인 ===")
 
 

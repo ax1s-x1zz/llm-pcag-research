@@ -27,7 +27,8 @@ OUT_DIR = os.path.normpath(OUT_DIR)
 
 
 def bit_width(precision):
-    return {"FP16": 16, "INT8": 8, "INT4": 4, "INT3": 3, "INT2": 2}[precision]
+    return {"FP16": 16, "INT8": 8, "INT6": 6, "INT5": 5, "INT4": 4,
+            "INT3": 3, "INT2": 2, "FP4": 4}[precision]
 
 
 def load_results(path=CSV_PATH):

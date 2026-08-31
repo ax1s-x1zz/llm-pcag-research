@@ -19,7 +19,8 @@ CSV_MAIN = os.path.join(HERE, "results_raw.csv")
 CSV_MULTI = os.path.join(HERE, "results_multimodel_raw.csv")
 OUT_JSON = os.path.join(HERE, "sensitivity_summary.json")
 
-PREC_BITS = {"FP16": 16, "INT8": 8, "INT4": 4, "INT3": 3, "INT2": 2}
+PREC_BITS = {"FP16": 16, "INT8": 8, "INT6": 6, "INT5": 5, "INT4": 4,
+             "INT3": 3, "INT2": 2, "FP4": 4}
 RNG = np.random.default_rng(42)  # 재현 가능성
 
 
