@@ -87,28 +87,35 @@ llm-pcag-research/
 ├── README.md                        # 영문 README
 ├── README_kr.md                     # 본 문서 (한국어)
 ├── INSTRUCTIONS.md                  # 연구 실행 프로토콜 (에이전트 지시서)
-├── research_journal.md              # 연구 저널 (시간순 의사결정·장애 기록)
+├── research_journal.md              # 연구 저널 (시간순 의사결정·실패·관찰 기록)
+├── notebooks/
+│   └── PCAG_Measured_GPU.ipynb      # Colab 원클릭 실측 노트북 (T4)
 ├── docs/
 │   ├── main_paper.md                # 학술 논문 원고 (국문/영문 초록 + 6장 + 부록)
 │   ├── proof_3_1_derivation.md      # 조건식 3.1 해석적 유도 (부록 자료)
+│   ├── colab_execution_guide.md     # Colab 실측 실행 가이드 (Source=Measured-GPU)
+│   ├── design_decisions.md          # 설계 결정 기록 (ADR DD-01~08)
+│   ├── measurement_protocol.md      # 실험 프로토콜·데이터 출처 기록
 │   ├── references/                  # 참조 문서 (PCAG 수식·변수 정의서 등)
 │   └── figures/                     # 그림 17종 (PNG 200dpi + PDF)
 ├── experiments/                     # 재현 가능한 실험 파이프라인
 │   ├── schema.py                    # 공용 CSV 스키마 (의존성 없음)
-│   ├── telemetry.py                 # PyNVML/nvidia-smi 전력 계측 + 에너지 적분
-│   ├── eval_harness.py              # MMLU/GSM8K (없으면 합성 논리 태스크) 평가기
-│   ├── benchmark_driver.py          # FP16/INT8/INT4/INT3/INT2 실측 드라이버 (GPU용)
+│   ├── telemetry.py                 # PyNVML/nvidia-smi/torch.cuda 전력 계측 + 에너지 적분
+│   ├── eval_harness.py              # ARC-Easy(표준) / 합성 논리 태스크 평가기
+│   ├── lowbit.py                    # 2~8bit 균일 per-channel RTN 저비트 엔진
+│   ├── benchmark_driver.py          # 실측 드라이버 (rtn 곡선 / bnb 검증, 모델별 분할)
 │   ├── generate_results.py          # 문헌 앵커 참고 데이터 생성 (Reference-Literature)
 │   ├── multimodel_data.py           # 4모델 × 5정밀도 = 20행 앵커 (물리 정합성 규칙)
 │   ├── analysis.py                  # PCAG 산출 + Power Wall 판정
 │   ├── analytical_proof.py          # 조건식 3.1 폐형 유도 + Jevons sympy 증명
 │   ├── sensitivity.py               # θ 스윕 · Jevons 그리드 · Monte Carlo N=3000
 │   ├── jevons_model.py              # Jevons 매크로 전력망 시뮬레이션
-│   ├── make_figures.py              # 그림 17종 생성 (PNG+PDF)
+│   ├── make_figures.py              # 그림 17종 생성 (데이터 구동형, PNG+PDF)
 │   ├── dry_run.py                   # 통합 파이프라인 검증
 │   └── *.csv / *.json               # 원시 데이터 + 분석 산출물
 └── logs/
-    └── troubleshooting_archive.md   # 엔지니어링 회고록 (ISSUE 9건)
+    ├── troubleshooting_archive.md   # 엔지니어링 회고록 (ISSUE 20건)
+    └── change_log.md                # 커밋 단위 변경 로그
 ```
 
 ---
@@ -172,5 +179,9 @@ python benchmark_driver.py      # 실측 실행 → results_raw.csv 덮어쓰기
 
 - **논문 원고**: [`docs/main_paper.md`](docs/main_paper.md)
 - **조건식 3.1 해석적 유도**: [`docs/proof_3_1_derivation.md`](docs/proof_3_1_derivation.md)
+- **Colab 실측 실행 가이드**: [`docs/colab_execution_guide.md`](docs/colab_execution_guide.md)
+- **설계 결정 기록 (ADR)**: [`docs/design_decisions.md`](docs/design_decisions.md)
+- **실험 프로토콜·데이터 출처**: [`docs/measurement_protocol.md`](docs/measurement_protocol.md)
 - **연구 저널**: [`research_journal.md`](research_journal.md)
-- **트러블슈팅 아카이브**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — 환경·코드·수학·데이터 이슈 9건의 회고록
+- **트러블슈팅 아카이브**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — 환경·코드·수학·데이터·방법론 이슈 회고록
+- **변경 로그**: [`logs/change_log.md`](logs/change_log.md) — 커밋 단위 변경 기록

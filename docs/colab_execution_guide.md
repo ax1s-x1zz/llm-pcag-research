@@ -346,3 +346,16 @@ setInterval(ClickConnect, 60000)
 - [ ] `analysis.py → analytical_proof.py → sensitivity.py → jevons_model.py → make_figures.py`
 - [ ] `dry_run.py` 로 산출물 검증
 - [ ] `docs/figures/` 17종 + `*.json` 실측 갱신 확인
+
+---
+
+## 8. 연구 기록 문서 (References)
+
+- **실험 프로토콜·데이터 출처**: [`measurement_protocol.md`](measurement_protocol.md)
+  — 측정 조건·단위·무결성 규칙 고정
+- **설계 결정 기록 (ADR)**: [`design_decisions.md`](design_decisions.md)
+  — 방법론 재설계(균일 RTN 곡선 등)의 근거·대안·트레이드오프
+- **연구 저널**: [`../research_journal.md`](../research_journal.md) — 시간순 기록
+- **트러블슈팅 아카이브**: [`../logs/troubleshooting_archive.md`](../logs/troubleshooting_archive.md)
+  — ISSUE-ENV-04(세션 타임아웃), ISSUE-ENV-05(전력 계측 불가) 등
+- **변경 로그**: [`../logs/change_log.md`](../logs/change_log.md) — 커밋 단위 변경 기록

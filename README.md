@@ -88,27 +88,34 @@ llm-pcag-research/
 ├── README_kr.md                     # Korean README
 ├── INSTRUCTIONS.md                  # Research execution protocol (agent directive)
 ├── research_journal.md              # Research journal (chronological decisions and failures)
+├── notebooks/
+│   └── PCAG_Measured_GPU.ipynb      # One-click Colab measurement notebook (T4)
 ├── docs/
 │   ├── main_paper.md                # Academic paper draft (KR/EN abstracts + 6 chapters + appendix)
 │   ├── proof_3_1_derivation.md      # Analytic derivation of Condition 3.1 (appendix material)
+│   ├── colab_execution_guide.md     # Colab measurement guide (Source=Measured-GPU)
+│   ├── design_decisions.md          # Design decision records (ADR DD-01~08)
+│   ├── measurement_protocol.md      # Measurement protocol & data provenance
 │   ├── references/                  # Reference documents (PCAG formula/variable definitions)
 │   └── figures/                     # 17 figures (PNG 200dpi + PDF)
 ├── experiments/                     # Reproducible experiment pipeline
 │   ├── schema.py                    # Shared CSV schema (dependency-free)
-│   ├── telemetry.py                 # PyNVML/nvidia-smi power telemetry + energy integration
-│   ├── eval_harness.py              # MMLU/GSM8K evaluator (falls back to synthetic logic tasks)
-│   ├── benchmark_driver.py          # FP16/INT8/INT4/INT3/INT2 measurement driver (GPU)
+│   ├── telemetry.py                 # PyNVML/nvidia-smi/torch.cuda power telemetry + energy integration
+│   ├── eval_harness.py              # ARC-Easy (standard) / synthetic logic task evaluator
+│   ├── lowbit.py                    # 2-8 bit uniform per-channel RTN low-bit engine
+│   ├── benchmark_driver.py          # Measurement driver (rtn curve / bnb validation, per-model split)
 │   ├── generate_results.py          # Literature-anchored reference data (Reference-Literature)
 │   ├── multimodel_data.py           # 4 models × 5 precisions = 20 anchor rows
 │   ├── analysis.py                  # PCAG computation + Power Wall detection
 │   ├── analytical_proof.py          # Closed-form derivation of Condition 3.1 + sympy Jevons proof
 │   ├── sensitivity.py               # θ sweep, Jevons grid, Monte Carlo N=3000
 │   ├── jevons_model.py              # Macro grid load simulation
-│   ├── make_figures.py              # Generates all 17 figures (PNG+PDF)
+│   ├── make_figures.py              # Generates all 17 figures (data-driven, PNG+PDF)
 │   ├── dry_run.py                   # End-to-end pipeline verification
 │   └── *.csv / *.json               # Raw data + analysis outputs
 └── logs/
-    └── troubleshooting_archive.md   # Engineering retrospective (9 issues)
+    ├── troubleshooting_archive.md   # Engineering retrospective (20 issues)
+    └── change_log.md                # Commit-level change log
 ```
 
 ---
@@ -172,5 +179,9 @@ python benchmark_driver.py      # Measured run → overwrites results_raw.csv (S
 
 - **Paper draft**: [`docs/main_paper.md`](docs/main_paper.md)
 - **Analytic derivation of Condition 3.1**: [`docs/proof_3_1_derivation.md`](docs/proof_3_1_derivation.md)
+- **Colab measurement guide**: [`docs/colab_execution_guide.md`](docs/colab_execution_guide.md)
+- **Design decision records (ADR)**: [`docs/design_decisions.md`](docs/design_decisions.md)
+- **Measurement protocol & data provenance**: [`docs/measurement_protocol.md`](docs/measurement_protocol.md)
 - **Research journal**: [`research_journal.md`](research_journal.md)
-- **Troubleshooting archive**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — retrospective on 9 environment/code/math/data issues
+- **Troubleshooting archive**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — retrospective on environment/code/math/data/methodology issues
+- **Change log**: [`logs/change_log.md`](logs/change_log.md) — commit-level change record
