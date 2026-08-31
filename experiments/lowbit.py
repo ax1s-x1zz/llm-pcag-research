@@ -219,9 +219,9 @@ def load_lowbit_from_checkpoint(model_name, bits, device="cuda"):
     import os
     import torch
     import torch.nn as nn
+    import json
     from transformers import AutoModelForCausalLM, AutoConfig, AutoTokenizer
     from accelerate import init_empty_weights
-    from transformers.utils import get_checkpoint_shard_files
     from huggingface_hub import snapshot_download
 
     config = AutoConfig.from_pretrained(model_name, torch_dtype=torch.float16)
@@ -240,8 +240,14 @@ def load_lowbit_from_checkpoint(model_name, bits, device="cuda"):
         shard_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir)
                        if f.endswith(".safetensors") or f.endswith(".bin")]
     else:
-        shard_files, _ = get_checkpoint_shard_files(model_name, index_path,
-                                                    cache_dir=cache_dir)
+        # index.json 의 weight_map 으로 shard 파일명 확보 (get_checkpoint_shard_files
+        # 대체 — 최신 transformers 에서 제거됨)
+        with open(index_path, encoding="utf-8") as f:
+            index = json.load(f)
+        _cands = set(index.get("weight_map", {}).values())
+        shard_files = [os.path.join(cache_dir, s) for s in _cands
+                       if os.path.exists(os.path.join(cache_dir, s))]
+        shard_files.sort()
 
     # 빈(meta) LowBitLinear 스켈레톤 구성
     with init_empty_weights():
