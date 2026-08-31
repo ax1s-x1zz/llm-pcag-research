@@ -1,5 +1,9 @@
 # Google Colab 실측 실행 가이드 (Source=Measured-GPU)
 
+> ⚡ **바로 실행**: [`notebooks/PCAG_Measured_GPU.ipynb`](../notebooks/PCAG_Measured_GPU.ipynb)
+> 를 Colab 에 업로드(또는 GitHub 에서 `Open in Colab`) → 런타임을 T4 로 설정 →
+> 첫 셀부터 Run all. 아래는 그 원리와 수동 실행 절차입니다.
+
 무료 Colab **T4 GPU(16GB VRAM)** 환경에서 이 연구의 모든 실측 데이터
 (`Source=Measured-GPU`)를 추출하고, 17종 그림과 분석 산출물을 갱신하기 위한
 단계별 실행 안내입니다.
