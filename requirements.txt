@@ -1,0 +1,15 @@
+# PCAG Research — Python dependencies
+# 참고 데이터 기반 전체 파이프라인(분석·증명·시각화·검증) 재현을 위한 최소 요구 사항.
+# 검증된 버전(Python 3.14.4, 2026-09-01)을 명시한다.
+numpy==2.5.2
+pandas==3.0.5
+matplotlib==3.11.1
+scipy==1.18.1
+sympy==1.14.0
+
+# GPU 실측 단계(experiments/benchmark_driver.py)에서만 추가로 필요.
+# 이 라인들은 GPU 실행 환경에서만 설치한다.
+# torch>=2.1
+# transformers>=4.36
+# bitsandbytes>=0.41
+# pynvml>=11.4

@@ -31,7 +31,7 @@ LLM 추론 비용 폭증에 대응하는 표준 최적화인 **가중치 양자�
 
 ## PCAG 정의
 
-원문 수식 [공식 3.1] `PCAG_k = ΔA_k/ΔP_k`는 항상 ≤0이 되어 해석 구간(PCAG>0)과 모숩됨을 발견(ISSUE-PCAG-01)하고, 다음의 **운영(interpretable) 정의**를 채택했습니다:
+원문 수식 [공식 3.1] `PCAG_k = ΔA_k/ΔP_k`는 항상 ≤0이 되어 해석 구간(PCAG>0)과 모순됨을 발견(ISSUE-PCAG-01)하고, 다음의 **운영(interpretable) 정의**를 채택했습니다:
 
 ```
 PCAG_k = (상대 전력 절감) / (상대 정확도 손실)
@@ -87,10 +87,14 @@ llm-pcag-research/
 ├── README.md                        # 영문 README
 ├── README_kr.md                     # 본 문서 (한국어)
 ├── INSTRUCTIONS.md                  # 연구 실행 프로토콜 (에이전트 지시서)
+├── requirements.txt                 # 고정 의존성 버전 (재현성)
 ├── research_journal.md              # 연구 저널 (시간순 의사결정·장애 기록)
 ├── docs/
-│   ├── main_paper.md                # 학술 논문 원고 (국문/영문 초록 + 6장 + 부록)
+│   ├── main_paper.md                # 학술 논문 원고 v3 (국문/영문 초록 + 6장 + 부록)
 │   ├── proof_3_1_derivation.md      # 조건식 3.1 해석적 유도 (부록 자료)
+│   ├── measurement_protocol.md      # GPU 실측 표준 측정 프로토콜
+│   ├── reproducibility.md           # 재현 보고서 (환경·명령열·골든 해시·검증 매트릭스)
+│   ├── references.bib               # BibTeX 참고문헌 (14건)
 │   ├── references/                  # 참조 문서 (PCAG 수식·변수 정의서 등)
 │   └── figures/                     # 그림 17종 (PNG 200dpi + PDF)
 ├── experiments/                     # 재현 가능한 실험 파이프라인
@@ -98,17 +102,20 @@ llm-pcag-research/
 │   ├── telemetry.py                 # PyNVML/nvidia-smi 전력 계측 + 에너지 적분
 │   ├── eval_harness.py              # MMLU/GSM8K (없으면 합성 논리 태스크) 평가기
 │   ├── benchmark_driver.py          # FP16/INT8/INT4/INT3/INT2 실측 드라이버 (GPU용)
-│   ├── generate_results.py          # 문헌 앵커 참고 데이터 생성 (Reference-Literature)
-│   ├── multimodel_data.py           # 4모델 × 5정밀도 = 20행 앵커 (물리 정합성 규칙)
+│   ├── lowbit.py                    # packed INT3/INT2 저비트 양자화 엔진 (실측 단계)
+│   ├── generate_results.py          # 문헌 앵커 참고 데이터 (Reference-Literature, 결정적)
+│   ├── multimodel_data.py           # 4모델 × 5정밀도 = 20행 앵커 (결정적)
 │   ├── analysis.py                  # PCAG 산출 + Power Wall 판정
 │   ├── analytical_proof.py          # 조건식 3.1 폐형 유도 + Jevons sympy 증명
-│   ├── sensitivity.py               # θ 스윕 · Jevons 그리드 · Monte Carlo N=3000
+│   ├── sensitivity.py               # θ 스윕 · Jevons 그리드 · Monte Carlo N=3000 (시드 42)
 │   ├── jevons_model.py              # Jevons 매크로 전력망 시뮬레이션
 │   ├── make_figures.py              # 그림 17종 생성 (PNG+PDF)
+│   ├── verify_numbers.py            # 학술 무결성 게이트 — 논문 수치 ↔ 산출물 (60개 항목)
 │   ├── dry_run.py                   # 통합 파이프라인 검증
 │   └── *.csv / *.json               # 원시 데이터 + 분석 산출물
 └── logs/
-    └── troubleshooting_archive.md   # 엔지니어링 회고록 (ISSUE 9건)
+    ├── troubleshooting_archive.md   # 엔지니어링 회고록 (ISSUE 11건)
+    └── change_log.md                # 원고·파이프라인 버전 이력 (v1→v3)
 ```
 
 ---
@@ -116,31 +123,37 @@ llm-pcag-research/
 ## 재현 방법
 
 ### 요구 사항
-- Python ≥ 3.10, `numpy pandas matplotlib scipy sympy`
+- Python ≥ 3.10, `numpy pandas matplotlib scipy sympy` (버전은 `requirements.txt` 에 고정)
 - **GPU 실측** 시: `torch`, `transformers`, `bitsandbytes`, `pynvml` 추가
 
 ### 참고 데이터 기반 전체 재현 (GPU 불필요)
 
 ```bash
-pip install numpy pandas matplotlib scipy sympy
+pip install -r requirements.txt
 
 cd experiments
-python generate_results.py      # 1. 참고 데이터 생성 (Llama-3-8B 앵커)
-python multimodel_data.py       # 2. 다중 모델 앵커 생성 (4모델 × 5정밀도)
+python generate_results.py      # 1. 참고 데이터 생성 (Llama-3-8B 앵커, 결정적)
+python multimodel_data.py       # 2. 다중 모델 앵커 생성 (4모델 × 5정밀도, 결정적)
 python analysis.py              # 3. PCAG 분석 + Power Wall 판정
 python analytical_proof.py      # 4. 해석적 유도 + Jevons 기호 증명
-python sensitivity.py           # 5. θ 스윕 + Jevons 그리드 + Monte Carlo
+python sensitivity.py           # 5. θ 스윕 + Jevons 그리드 + Monte Carlo (시드 42)
 python jevons_model.py          # 6. Jevons 매크로 시뮬레이션
 python make_figures.py          # 7. 그림 17종 생성
+python verify_numbers.py        # 8. 무결성 게이트 — 논문 수치 ↔ 산출물 (60 PASS 기대)
 python dry_run.py               #    (선택) 통합 파이프라인 검증
 ```
+
+전체 재현 보고서(환경·골든 해시·검증 매트릭스)는 [`docs/reproducibility.md`](docs/reproducibility.md) 참조.
 
 ### GPU 실측으로 교체 (GPU 확보 시)
 
 ```bash
 python benchmark_driver.py      # 실측 실행 → results_raw.csv 덮어쓰기 (Source=Measured-GPU)
 # 이후 analysis.py → sensitivity.py → make_figures.py 재실행으로 전체 수치·그림 갱신
+# 마지막으로 verify_numbers.py 재실행 → 어떤 논문 수치를 갱신할지 식별
 ```
+
+표준 측정 절차는 [`docs/measurement_protocol.md`](docs/measurement_protocol.md) 를 따른다.
 
 ---
 
@@ -160,13 +173,18 @@ python benchmark_driver.py      # 실측 실행 → results_raw.csv 덮어쓰기
 - [x] Phase 3: PCAG 정식화 + Power Wall 판정 + 해석적 증명
 - [x] Phase 4: Jevons 매크로 시뮬레이션 + 폐형 증명
 - [x] Phase 5: 논문 원고 완성 (v2) + 그림 17종
+- [x] Phase 6: 학술 완성도 강화 (v3) — 정리/정의, 기호표, 관련연구, 위협 요소, 통계 부록, 재현성, 무결성 게이트
 - [ ] **GPU 실측**: `benchmark_driver.py` 실행 → 실측 데이터 교체 → 세밀 비트(INT6/INT5) 샘플링
 
 ---
 
 ## 핵심 문서
 
-- **논문 원고**: [`docs/main_paper.md`](docs/main_paper.md)
+- **논문 원고 v3**: [`docs/main_paper.md`](docs/main_paper.md)
 - **조건식 3.1 해석적 유도**: [`docs/proof_3_1_derivation.md`](docs/proof_3_1_derivation.md)
+- **측정 프로토콜**: [`docs/measurement_protocol.md`](docs/measurement_protocol.md)
+- **재현 보고서**: [`docs/reproducibility.md`](docs/reproducibility.md)
+- **참고문헌 (BibTeX)**: [`docs/references.bib`](docs/references.bib)
 - **연구 저널**: [`research_journal.md`](research_journal.md)
-- **트러블슈팅 아카이브**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — 환경·코드·수학·데이터 이슈 9건의 회고록
+- **변경 로그**: [`logs/change_log.md`](logs/change_log.md)
+- **트러블슈팅 아카이브**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — 환경·코드·수학·데이터 이슈 11건의 회고록

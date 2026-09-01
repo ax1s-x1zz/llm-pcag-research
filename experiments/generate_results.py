@@ -15,11 +15,12 @@
 #   - 전형적 배치 추론 성능치(A100/H100급, 8B)로 스케일 일관성 유지.
 import os
 import csv
-import datetime
 
 from schema import RESULTS_COLUMNS, CSV_PATH
 
 MODEL = "meta-llama/Llama-3-8B"
+# 참고 데이터 생성일(고정). 재현 시 매 실행마다 출력이 달라지지 않도록 상수화한다.
+ANCHOR_GEN_DATE = "2026-08-27"
 # (precision, accuracy_%, energy_J_per_1000_tok, avg_power_W, latency_ms_per_tok, vram_GB)
 # Reference anchor points.
 ROWS = [
@@ -50,7 +51,7 @@ def main():
             "Source": "Reference-Literature",
             "Notes": (
                 "문헌 앵커 기반 참고 수치(아직 GPU 미실측). "
-                f"생성 {datetime.date.today().isoformat()}. "
+                f"생성 {ANCHOR_GEN_DATE}. "
                 "accuracy=MMLU-style proxy, E=J/1000 tokens"
             ),
         })

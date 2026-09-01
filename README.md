@@ -87,10 +87,14 @@ llm-pcag-research/
 ├── README.md                        # This document
 ├── README_kr.md                     # Korean README
 ├── INSTRUCTIONS.md                  # Research execution protocol (agent directive)
+├── requirements.txt                 # Pinned dependency versions (reproducibility)
 ├── research_journal.md              # Research journal (chronological decisions and failures)
 ├── docs/
-│   ├── main_paper.md                # Academic paper draft (KR/EN abstracts + 6 chapters + appendix)
+│   ├── main_paper.md                # Academic paper draft v3 (KR/EN abstracts + 6 chapters + appendices)
 │   ├── proof_3_1_derivation.md      # Analytic derivation of Condition 3.1 (appendix material)
+│   ├── measurement_protocol.md      # Standard GPU measurement protocol (for the measured phase)
+│   ├── reproducibility.md           # Reproducibility report: env, commands, golden hashes, verification matrix
+│   ├── references.bib               # BibTeX bibliography (14 references)
 │   ├── references/                  # Reference documents (PCAG formula/variable definitions)
 │   └── figures/                     # 17 figures (PNG 200dpi + PDF)
 ├── experiments/                     # Reproducible experiment pipeline
@@ -98,17 +102,20 @@ llm-pcag-research/
 │   ├── telemetry.py                 # PyNVML/nvidia-smi power telemetry + energy integration
 │   ├── eval_harness.py              # MMLU/GSM8K evaluator (falls back to synthetic logic tasks)
 │   ├── benchmark_driver.py          # FP16/INT8/INT4/INT3/INT2 measurement driver (GPU)
-│   ├── generate_results.py          # Literature-anchored reference data (Reference-Literature)
-│   ├── multimodel_data.py           # 4 models × 5 precisions = 20 anchor rows
+│   ├── lowbit.py                    # Packed INT3/INT2 quantization engine (GPU phase)
+│   ├── generate_results.py          # Literature-anchored reference data (Reference-Literature, deterministic)
+│   ├── multimodel_data.py           # 4 models × 5 precisions = 20 anchor rows (deterministic)
 │   ├── analysis.py                  # PCAG computation + Power Wall detection
 │   ├── analytical_proof.py          # Closed-form derivation of Condition 3.1 + sympy Jevons proof
-│   ├── sensitivity.py               # θ sweep, Jevons grid, Monte Carlo N=3000
+│   ├── sensitivity.py               # θ sweep, Jevons grid, Monte Carlo N=3000 (seed 42)
 │   ├── jevons_model.py              # Macro grid load simulation
 │   ├── make_figures.py              # Generates all 17 figures (PNG+PDF)
+│   ├── verify_numbers.py            # Academic integrity gate: paper numbers vs. artifacts (60 checks)
 │   ├── dry_run.py                   # End-to-end pipeline verification
 │   └── *.csv / *.json               # Raw data + analysis outputs
 └── logs/
-    └── troubleshooting_archive.md   # Engineering retrospective (9 issues)
+    ├── troubleshooting_archive.md   # Engineering retrospective (11 issues)
+    └── change_log.md                # Paper/pipeline version history (v1 → v3)
 ```
 
 ---
@@ -116,31 +123,37 @@ llm-pcag-research/
 ## Reproduction
 
 ### Requirements
-- Python ≥ 3.10 with `numpy pandas matplotlib scipy sympy`
+- Python ≥ 3.10 with `numpy pandas matplotlib scipy sympy` (pinned in `requirements.txt`)
 - For **GPU measurement** additionally: `torch`, `transformers`, `bitsandbytes`, `pynvml`
 
 ### Full reproduction from reference data (no GPU needed)
 
 ```bash
-pip install numpy pandas matplotlib scipy sympy
+pip install -r requirements.txt
 
 cd experiments
-python generate_results.py      # 1. Generate reference data (Llama-3-8B anchor)
-python multimodel_data.py       # 2. Generate multi-model anchors (4 models × 5 precisions)
+python generate_results.py      # 1. Generate reference data (Llama-3-8B anchor, deterministic)
+python multimodel_data.py       # 2. Generate multi-model anchors (4 models × 5 precisions, deterministic)
 python analysis.py              # 3. PCAG analysis + Power Wall detection
 python analytical_proof.py      # 4. Analytic derivation + Jevons symbolic proof
-python sensitivity.py           # 5. θ sweep + Jevons grid + Monte Carlo
+python sensitivity.py           # 5. θ sweep + Jevons grid + Monte Carlo (seed 42)
 python jevons_model.py          # 6. Macro grid simulation
 python make_figures.py          # 7. Generate all 17 figures
+python verify_numbers.py        # 8. Integrity gate — paper numbers vs. artifacts (expect 60 PASS)
 python dry_run.py               #    (optional) end-to-end pipeline check
 ```
+
+See [`docs/reproducibility.md`](docs/reproducibility.md) for the full report (environment, golden hashes, verification matrix).
 
 ### Replacing with GPU measurements (when available)
 
 ```bash
 python benchmark_driver.py      # Measured run → overwrites results_raw.csv (Source=Measured-GPU)
 # Then re-run analysis.py → sensitivity.py → make_figures.py to refresh all numbers and figures
+# Finally re-run verify_numbers.py to identify which paper numbers need updating
 ```
+
+Follow the standard protocol in [`docs/measurement_protocol.md`](docs/measurement_protocol.md).
 
 ---
 
@@ -160,13 +173,18 @@ python benchmark_driver.py      # Measured run → overwrites results_raw.csv (S
 - [x] Phase 3: PCAG formulation + Power Wall detection + analytic proof
 - [x] Phase 4: Jevons macro simulation + closed-form proof
 - [x] Phase 5: paper draft (v2) + 17 figures
+- [x] Phase 6: academic completeness (v3) — theorems/definitions, notation, related work, threats to validity, statistical appendix, reproducibility, integrity gate
 - [ ] **GPU measurement**: run `benchmark_driver.py` → replace with measured data → fine-grained bit sampling (INT6/INT5)
 
 ---
 
 ## Key Documents
 
-- **Paper draft**: [`docs/main_paper.md`](docs/main_paper.md)
+- **Paper draft v3**: [`docs/main_paper.md`](docs/main_paper.md)
 - **Analytic derivation of Condition 3.1**: [`docs/proof_3_1_derivation.md`](docs/proof_3_1_derivation.md)
+- **Measurement protocol**: [`docs/measurement_protocol.md`](docs/measurement_protocol.md)
+- **Reproducibility report**: [`docs/reproducibility.md`](docs/reproducibility.md)
+- **Bibliography (BibTeX)**: [`docs/references.bib`](docs/references.bib)
 - **Research journal**: [`research_journal.md`](research_journal.md)
-- **Troubleshooting archive**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — retrospective on 9 environment/code/math/data issues
+- **Change log**: [`logs/change_log.md`](logs/change_log.md)
+- **Troubleshooting archive**: [`logs/troubleshooting_archive.md`](logs/troubleshooting_archive.md) — retrospective on 11 environment/code/math/data issues

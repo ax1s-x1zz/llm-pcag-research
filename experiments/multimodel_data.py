@@ -16,11 +16,13 @@
 # 양자화 열화 경향(문헌 전형): W8A8 −1%p 내외, W4 −3~5%p, W3 −6~9%p, W2 −12~20%p(붕괴)
 import os
 import csv
-import datetime
 
 from schema import RESULTS_COLUMNS
 
 MULTI_CSV_PATH = os.path.join(os.path.dirname(__file__), "results_multimodel_raw.csv")
+
+# 다중 모델 앵커 생성일(고정). 재현 시 출력 결정성(byte-identical)을 보장한다.
+ANCHOR_GEN_DATE = "2026-08-28"
 
 # 물리 정합성 역산 상수 (Llama-3-8B FP16 앵커: 385W × 30.5ms → 140 J/1k)
 BATCH_AMORT = 140.0 / (385.0 * 30.5)  # ≈ 0.01193
@@ -79,7 +81,7 @@ def main():
                 "Source": "Reference-Literature",
                 "Notes": (
                     "다중 모델 문헌 앵커 참고 수치(GPU 미실측). "
-                    f"생성 {datetime.date.today().isoformat()}. "
+                    f"생성 {ANCHOR_GEN_DATE}. "
                     "accuracy=MMLU-style proxy, E=J/1000 tokens, "
                     f"E≈{BATCH_AMORT:.4f}×P×latency (배치 스케일 정합)"
                 ),

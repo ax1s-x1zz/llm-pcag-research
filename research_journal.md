@@ -130,3 +130,48 @@ GPU 여전히 미확보 → GPU 없이 가능한 작업을 전부 수행하기�
 - GPU 무관 수행 가능한 작업: 완료. 남은 것은 GPU 실측뿐.
 - 다음 단계(GPU 확보 시): benchmark_driver.py 실측 실행 → results_raw.csv 교체(Source=Measured-GPU)
   → analysis/sensitivity/figures 재실행 → 논문 수치 갱신. 세밀 비트(INT6/INT5) 샘플링 권장.
+
+---
+## 2026-09-01 — Phase 7: 학술 완성도 강화 + 재현성 하드닝 (pre-Colab 원래 연구 방향)
+
+### 배경
+저장소를 "Colab T4 최적화" 이전 상태로 되돌려 원래 연구(문헌 앵커 참고 데이터 기반)를 main으로 재편.
+Colab 최적화 상태는 별도 브랜치(colab-t4-optimization)로 격리. 이후 main에서 학술 가치 제고 작업 수행.
+
+### 환경 복구 (ISSUE-ENV-03 재발)
+- /tmp venv 소멸 확인. 이번에는 재현성을 위해 **저장소 내 persistent `.venv`** 를 구축.
+- ensurepip 부재로 `get-pip.py` 부트스트랩 재적용 (ISSUE-ENV-02와 동일 경로).
+- numpy 2.5.2 / pandas 3.0.5 / matplotlib 3.11.1 / scipy 1.18.1 / sympy 1.14.0 설치.
+- `requirements.txt` 에 검증 버전 고정.
+
+### 재현성 하드닝
+- **비결정성 제거**: `generate_results.py`·`multimodel_data.py` 가 `datetime.date.today()` 로 Notes에
+  생성일을 박아 재실행 시마다 CSV가 더러워지는 문제 발견(ISSUE-REPROD-01). 고정 상수
+  `ANCHOR_GEN_DATE`(2026-08-27 / 2026-08-28)로 교체 → **byte-identical 재생성 확인**.
+- 골든 해시(CSV/JSON 6종)를 `docs/reproducibility.md` 에 기록.
+
+### 학술 문서 v3
+- `main_paper.md` v3: 정의 3.1~3.3·정리 3.4·5.1·계 3.5·5.2 번호 부여, 기호표(3.3.0),
+  관련연구 확장+인용 [1]~[14], 위협 요소 절(4.5), 재현성·데이터/코드 가용성 진술,
+  통계 부록 B(다중 모델·MC·θ스윕·Jevons 표).
+- `docs/references.bib` 신설 (BibTeX 14건).
+- `docs/measurement_protocol.md` 신설 (실측 표준 절차·스왑 프로토콜·체크리스트).
+- `docs/reproducibility.md` 신설 (환경·명령열·골든 해시·검증 매트릭스).
+- `logs/change_log.md` 신설 (v1/v2/v3 이력).
+
+### 무결성 게이트 도구
+- `experiments/verify_numbers.py` 신설 — 논문 인용 수치 60개를 CSV/JSON 산출물과 자동 대조
+  (PCAG, Power Wall, 변곡점 3경로, MC, θ스윕, 다중 모델, Jevons). **60 PASS / 0 FAIL**.
+- GPU 실측 교체 시 이 게이트의 실패 항목 = 논문에서 갱신할 수치 식별 장치.
+
+### 수치 무결성 검증
+- 전체 파이프라인 재실행: dry_run OK, analysis/analytical_proof 재실행 결과 JSON 무변경 확인.
+- 다중 모델 PCAG 실계산값(부록 B.2) 전사: Llama 20.02/10.40/4.80/2.19, Qwen 30.48/15.36/5.58/2.38,
+  Gemma 21.57/11.52/5.03/2.22, Mistral 24.40/11.49/4.54/2.07.
+
+### 현재 상태
+- main = pre-Colab 원래 연구 + v3 문서/도구. Colab 최적화는 `colab-t4-optimization` 브랜치에 보존.
+- 다음 단계(GPU 확보 시): measurement_protocol.md Swap Procedure → 실측 교체 → verify_numbers.py
+  로 갱신 수치 식별 → 논문·부록·해시 갱신.
+- 참고: 원격(origin) 반영은 로컬 자격증명(credential.helper=-l) 문제로 보류 — `git push --force origin main`
+  및 `git push -u origin colab-t4-optimization` 수동 실행 필요.

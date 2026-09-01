@@ -115,3 +115,23 @@
 - **시도한 해결책**: 샘플 1개에 대해 디버그 실행으로 예외 확인.
 - **최종 수정**: 스칼라 float() 래퍼 제거, PCHIP을 배열에 직접 벡터 호출. 근 위치는 영교차 선형 보간으로 정제. 재실행 결과 b*=3.398±0.252 (90% CI [2.99,3.66]) 정상 검출.
 - **교훈**: `except: pass`는 수치 파이프라인에서 치명적 — 최소한 로깅하거나 카운터로 실패율을 보고할 것. "0개 결과"는 곧 전수 실패 신호로 해석하고 원인을 추적.
+
+---
+
+## ISSUE-ENV-04: /tmp venv 재소멸 → persistent .venv 전환
+- **시각**: 2026-09-01 (Phase 7, 학술 완성도 강화)
+- **증상**: `/tmp/opencode/venv` 재소멸 확인 (ISSUE-ENV-03 재발). 저장소 재편(main 재설정) 후 파이프라인 검증을 위해 의존성 재설치 필요.
+- **근본 원인 가설**: `/tmp` 휘발성 파일시스템은 세션 간 보존되지 않음.
+- **시도한 해결책**: `python3 -m venv .venv` → ensurepip 부재로 실패(ISSUE-ENV-02 재발). `get-pip.py --break-system-packages` 부트스트랩 재적용.
+- **최종 수정**: **저장소 내 persistent `.venv`** 구축(부트스트랩 후 `requirements.txt` 로 버전 고정 설치). 재현 명령열을 `docs/reproducibility.md` 에 문서화해 복구 시간 최소화.
+- **교훈**: 재현성이 목표라면 /tmp 대신 워크스페이스 내 persistent 경로 + 고정 requirements 로 환경을 관리. 환경은 재료가 아니라 재현 대상이다.
+
+---
+
+## ISSUE-REPROD-01: 참고 데이터 생성의 비결정성 (재현성)
+- **시각**: 2026-09-01 (Phase 7)
+- **증상**: `generate_results.py`·`multimodel_data.py` 재실행 시 `results_raw.csv`·`results_multimodel_raw.csv` 의 Notes에 박힌 `생성 YYYY-MM-DD`가 오늘 날짜로 바뀌어 매번 git이 "더러워짐". 수치는 동일하나 바이트가 달라짐.
+- **근본 원인 가설**: 스크립트가 `datetime.date.today().isoformat()` 을 Notes에 직접 박아 출력을 비결정적으로 만듦.
+- **시도한 해결책**: (해당 없음 — 원인 명확) 생성일을 고정 상수로 교체하기로 결정.
+- **최종 수정**: `ANCHOR_GEN_DATE` 상수(각각 2026-08-27, 2026-08-28)를 정의해 `datetime` import 제거. 재실행 시 **byte-identical** 출력 확인. 골든 해시를 `docs/reproducibility.md` 에 기록.
+- **교훈**: "재현 가능"을 주장하려면 출력이 결정적이어야 한다. 메타데이터(날짜·해시)는 고정 상수로 관리하고, 변하는 정보는 별도 로그로 분리할 것.
