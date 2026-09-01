@@ -76,7 +76,7 @@ PCAG_k = (상대 전력 절감) / (상대 정확도 손실)
 
 ![Efficiency Frontier](docs/figures/fig14_efficiency_frontier.png)
 
-> 전체 그림 17종(PNG 200dpi + PDF 벡터)은 [`docs/figures/`](docs/figures/) 에서, 논문 부록 A의 그림 색인과 대응됩니다.
+> 전체 그림 19종(PNG 200dpi + PDF 벡터)은 [`docs/figures/`](docs/figures/) 에서, 논문 부록 A의 그림 색인과 대응됩니다.
 
 ---
 
@@ -96,7 +96,7 @@ llm-pcag-research/
 │   ├── reproducibility.md           # 재현 보고서 (환경·명령열·골든 해시·검증 매트릭스)
 │   ├── references.bib               # BibTeX 참고문헌 (14건)
 │   ├── references/                  # 참조 문서 (PCAG 수식·변수 정의서 등)
-│   └── figures/                     # 그림 17종 (PNG 200dpi + PDF)
+│   └── figures/                     # 그림 19종 (PNG 200dpi + PDF)
 ├── experiments/                     # 재현 가능한 실험 파이프라인
 │   ├── schema.py                    # 공용 CSV 스키마 (의존성 없음)
 │   ├── telemetry.py                 # PyNVML/nvidia-smi 전력 계측 + 에너지 적분
@@ -111,7 +111,7 @@ llm-pcag-research/
 │   ├── statistics.py                # 부트스트랩 CI + 가설검정 (시드 20260901)
 │   ├── model_form.py                # 모델-형 강건성 (b*)
 │   ├── jevons_model.py              # Jevons 매크로 전력망 시뮬레이션
-│   ├── make_figures.py              # 그림 17종 생성 (PNG+PDF)
+│   ├── make_figures.py              # 그림 19종 생성 (PNG+PDF)
 │   ├── verify_numbers.py            # 학술 무결성 게이트 — 논문 수치 ↔ 산출물 (78개 항목)
 │   ├── dry_run.py                   # 통합 파이프라인 검증
 │   └── *.csv / *.json               # 원시 데이터 + 분석 산출물
@@ -142,7 +142,7 @@ python sensitivity.py           # 5. θ 스윕 + Jevons 그리드 + Monte Carlo 
 python statistics.py            # 6. 부트스트랩 CI + 가설검정 (시드 20260901)
 python model_form.py            # 7. 모델-형 강건성 (b*)
 python jevons_model.py          # 8. Jevons 매크로 시뮬레이션
-python make_figures.py          # 9. 그림 17종 생성
+python make_figures.py          # 9. 그림 19종 생성
 python verify_numbers.py        # 10. 무결성 게이트 — 논문 수치 ↔ 산출물 (78 PASS 기대)
 python dry_run.py               #     (선택) 통합 파이프라인 검증
 ```
@@ -176,7 +176,7 @@ python benchmark_driver.py      # 실측 실행 → results_raw.csv 덮어쓰기
 - [x] Phase 2: 참고 데이터 구성 (Llama-3-8B + 4모델 확장)
 - [x] Phase 3: PCAG 정식화 + Power Wall 판정 + 해석적 증명
 - [x] Phase 4: Jevons 매크로 시뮬레이션 + 폐형 증명
-- [x] Phase 5: 논문 원고 완성 (v2) + 그림 17종
+- [x] Phase 5: 논문 원고 완성 (v2) + 그림 19종
 - [x] Phase 6: 학술 완성도 강화 (v3) — 정리/정의, 기호표, 관련연구, 위협 요소, 통계 부록, 재현성, 무결성 게이트
 - [x] Phase 7: 실측 전 강화 (v4) — 부트스트랩 추론·추정 가능성, 모델-형 강건성, 조건식 일관성, 외부 타당도, 사회적 영향·선언
 - [ ] **GPU 실측**: `benchmark_driver.py` 실행 → 실측 데이터 교체 → 세밀 비트(INT6/INT5) 샘플링

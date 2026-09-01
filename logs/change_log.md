@@ -27,9 +27,13 @@
   - b\* ∈ [4.19, 4.27] (표준 포화형 4종), 가속 손실 구조 부재 시 변곡점 도메인 밖.
 - `experiments/analytical_proof.py` — `condition_3_2_3_1_consistency` 추가 (명제 3.6 수치 검증).
 - `experiments/verify_numbers.py` — 60 → 78개 항목으로 확장.
+- `experiments/make_figures.py` — Fig 18(부트스트랩 추론), Fig 19(모델-형 강건성) 추가 (17→19종).
+- `experiments/dry_run.py` — statistics.py·model_form.py·analytical_proof.py·verify_numbers.py 포함
+  전체 파이프라인 검증으로 확장 + 신규 산출물(fig18/19) 검증 항목 추가.
 
 **검증**
 - `verify_numbers.py` : 78 PASS / 0 FAIL.
+- `dry_run.py` : 전 파이프라인(분석→증명→민감도→부트스트랩→모델-형→Jevons→게이트→산출물) OK.
 
 ## v3 — 2026-09-01 (main, pre-Colab 원래 연구 방향)
 

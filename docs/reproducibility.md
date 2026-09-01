@@ -47,7 +47,7 @@ python sensitivity.py                     # (5) θ 스윕 + Jevons 그리드 + M
 python statistics.py                      # (6) 부트스트랩 통계 추론 (시드 20260901)
 python model_form.py                      # (7) 모델-형 강건성 (b*)
 python jevons_model.py                    # (8) Jevons 시나리오
-python make_figures.py                    # (9) 그림 17종 (PNG 200dpi + PDF)
+python make_figures.py                    # (9) 그림 19종 (PNG 200dpi + PDF)
 python verify_numbers.py                  # (10) 무결성 게이트 — 모든 수치 PASS 기대, exit 0
 python dry_run.py                         # (11) 통합 파이프라인 검증
 ```

@@ -208,6 +208,12 @@ main(원래 연구)에서 GPU 실측 전에 학술적 가치를 더 높일 수 �
 - verify_numbers.py 60→78 항목 확장. **78 PASS / 0 FAIL.**
 - 골든 해시 갱신(analysis_proof/statistics/model_form), 재현 명령열 갱신.
 
+### 시각화·파이프라인 확장
+- `make_figures.py` : Fig 18(부트스트랩 추론 — PCAG 90% CI + 변곡점 분포),
+  Fig 19(모델-형 강건성 — 대안 함수형 b\*) 추가. 17→19종.
+- `dry_run.py` : statistics.py·model_form.py·analytical_proof.py·verify_numbers.py 포함
+  전체 파이프라인 통합 검증으로 확장. 실행 결과 전 단계 OK, 산출물(JSON 7종+fig1/2/3/18/19) 확인.
+
 ### 현재 상태
 - main = pre-Colab 원래 연구 + v4 문서/도구. Colab 최적화는 `colab-t4-optimization` 브랜치.
 - 다음 단계(GPU 확보 시): measurement_protocol.md Swap Procedure → 실측 교체 →

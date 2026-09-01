@@ -728,6 +728,103 @@ def fig17(rows, sens, proof):
     save(fig, "fig17_wall_convergence")
 
 
+# ============================================================== Fig 18 (v4: bootstrap inference)
+def fig18(stat):
+    """Fig 18: 부트스트랩 통계 추론 — PCAG 90% CI와 연속 변곡점 분포.
+
+    왼쪽: 정밀도별 PCAG 부트스트랩 90% CI (근접-기준 정밀도가 취약함을 시각화).
+    오른쪽: 연속 변곡점(조건식 3.1) 부트스트랩 분포와 90% CI, INT4 벽 영역 오버레이.
+    """
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(11.5, 4.6))
+    order = ["INT8", "INT4", "INT3", "INT2"]
+    labels = ["INT8", "INT4", "INT3", "INT2"]
+    xs = np.arange(len(order))
+    pcag = stat["pcag"]
+    for i, k in enumerate(order):
+        v = pcag[k]
+        low, high = v["ci90_low"], v["ci90_high"]
+        mean = v["mean"]
+        # CI가 매우 넓은 근접-기준 정밀도는 파란 계열, 안정적 심층은 색 구분
+        color = "#d62728" if k == "INT8" else "#1f77b4"
+        axL.errorbar([i], [mean], yerr=[[mean - low], [high - mean]],
+                     fmt="o", color=color, ms=8, capsize=5, lw=2)
+        axL.annotate(f"{mean:.1f}\n[{low:.1f}, {high:.1f}]", (i, mean),
+                     textcoords="offset points", xytext=(0, 10), ha="center",
+                     fontsize=8)
+    axL.axhline(stat["inflection_bits"]["mean"], color="#888", ls=":", lw=1)
+    axL.set_xticks(xs)
+    axL.set_xticklabels(labels)
+    axL.set_ylabel("PCAG (bootstrap)")
+    axL.set_title("(a) PCAG 90% CI — near-baseline precision is fragile")
+    axL.set_ylim(0, 110)
+
+    # (b) 연속 변곡점 분포 (모의 분포 — mean/std 기반 정규 근사)
+    ib = stat["inflection_bits"]
+    mean, std = ib["mean"], ib["std"]
+    g = np.linspace(mean - 4 * std, mean + 4 * std, 400)
+    pdf = np.exp(-0.5 * ((g - mean) / std) ** 2) / (std * np.sqrt(2 * np.pi))
+    axR.plot(g, pdf, color="#1f77b4", lw=2)
+    axR.fill_between(g, 0, pdf, where=(g >= ib["ci90_low"]) & (g <= ib["ci90_high"]),
+                     color="#1f77b4", alpha=0.35, label="90% CI")
+    axR.axvline(mean, color="#111", ls="--", lw=1.5, label=f"mean={mean:.2f}")
+    axR.axvline(4.0, color="#d62728", ls="--", lw=1.5)
+    axR.axvspan(3, 4, color="#d62728", alpha=0.08)
+    axR.annotate("INT4 boundary", (4.0, 0.99 * pdf.max()), ha="center", fontsize=8,
+                 color="#d62728")
+    axR.set_xlabel("Continuous inflection b* (bits, Cond. 3.1)")
+    axR.set_ylabel("bootstrap density")
+    axR.set_title(f"(b) Inflection b* — 90% CI [{ib['ci90_low']}, {ib['ci90_high']}]")
+    axR.legend(loc="upper left", fontsize=8)
+    fig.tight_layout(rect=[0, 0.03, 1, 1])
+    footnote(fig, "Bootstrap: anchor lognormal noise σ=3%, N=3000, seed=20260901 (Source=Reference-Literature)")
+    save(fig, "fig18_bootstrap_inference")
+
+
+# ============================================================== Fig 19 (v4: model-form robustness)
+def fig19(mf, proof):
+    """Fig 19: 모델-형 강건성 — 대안 함수형에 대한 변곡점 b*.
+
+    표준 포화형 4종(Weibull/단일지수/tanh/Hill) × 선형+로지스틱 손실의 b*를 비교하고,
+    가속 손실 부재 시 도메인 내 변곡점이 없음을 표시한다.
+    """
+    fig, ax = plt.subplots(figsize=(8.2, 4.4))
+    # 도메인 내 변곡점이 존재하는 (S형) 조합만
+    in_domain = []
+    for s_name, losses in mf["details"].items():
+        for l_name, v in losses.items():
+            if v and v.get("inflection_in_domain") and v["b_star"] is not None:
+                in_domain.append((s_name, l_name, v["b_star"]))
+    s_names = list(mf["details"].keys())
+    y_pos = np.arange(len(s_names))[::-1]
+    cols = {"Weibull": "#1f77b4", "Exp1": "#2ca02c", "Tanh": "#9467bd", "Hill": "#ff7f0e"}
+    for i, (s_name, y) in enumerate(zip(s_names, y_pos)):
+        entry = next((b for n, ln, b in in_domain if n == s_name), None)
+        if entry is not None:
+            ax.scatter([entry], [y], s=150, color=cols[s_name],
+                       zorder=3, edgecolor="white")
+            ax.annotate(f"b*={entry:.2f}", (entry, y),
+                        textcoords="offset points", xytext=(10, 0), ha="left",
+                        va="center", fontsize=9, color=cols[s_name])
+        else:
+            ax.scatter([4.19], [y], s=150, marker="x", color="#999", zorder=3)
+            ax.annotate("no in-domain inflection (no accelerating loss)",
+                        (4.19, y), textcoords="offset points", xytext=(10, 0),
+                        ha="left", va="center", fontsize=8, color="#777")
+    ax.axvspan(3, 4, color="#d62728", alpha=0.08)
+    ax.axvline(proof["inflection_condition_3_1"]["b_star_primary"], color="#111",
+               ls="--", lw=1.2)
+    ax.text(proof["inflection_condition_3_1"]["b_star_primary"], len(s_names) - 0.4,
+            "baseline b*=4.19", ha="center", fontsize=8, color="#111")
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(s_names)
+    ax.set_xlim(2.6, 5.0)
+    ax.set_xlabel("Power Wall location b* (bits, Cond. 3.1)")
+    ax.set_title("Fig 19. Model-Form Robustness — b* across alternative functional forms")
+    fig.tight_layout(rect=[0, 0.03, 1, 1])
+    footnote(fig, "Saturating power-saving forms (Weibull/Exp1/Tanh/Hill) × LinLog loss (Source=Reference-Literature)")
+    save(fig, "fig19_model_form_robustness")
+
+
 def main():
     os.makedirs(FIG_DIR, exist_ok=True)
     rows, P0, A0 = load_main()
@@ -735,7 +832,9 @@ def main():
     sens = load_json("sensitivity_summary.json")
     proof = load_json("analysis_proof.json")
     jev = load_json("jevons_summary.json")
-    print("=== 그림 생성 시작 (16+1종) ===")
+    stat = load_json("statistics_summary.json")
+    mf = load_json("model_form_summary.json")
+    print("=== 그림 생성 시작 (19종) ===")
     fig1(rows, P0, A0)
     fig2(rows, proof)
     fig3(jev, rows)
@@ -753,6 +852,8 @@ def main():
     fig15(rows, multi, jev)
     fig16(sens)
     fig17(rows, sens, proof)
+    fig18(stat)
+    fig19(mf, proof)
     print("=== 완료: docs/figures/ 확인 ===")
 
 

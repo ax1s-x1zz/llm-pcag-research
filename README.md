@@ -76,7 +76,7 @@ PCAG_k = (relative power saving) / (relative accuracy loss)
 
 ![Efficiency Frontier](docs/figures/fig14_efficiency_frontier.png)
 
-> All 17 figures (PNG at 200dpi plus PDF vectors) are in [`docs/figures/`](docs/figures/), corresponding to the figure index in Appendix A of the paper.
+> All 19 figures (PNG at 200dpi plus PDF vectors) are in [`docs/figures/`](docs/figures/), corresponding to the figure index in Appendix A of the paper.
 
 ---
 
@@ -96,7 +96,7 @@ llm-pcag-research/
 │   ├── reproducibility.md           # Reproducibility report: env, commands, golden hashes, verification matrix
 │   ├── references.bib               # BibTeX bibliography (14 references)
 │   ├── references/                  # Reference documents (PCAG formula/variable definitions)
-│   └── figures/                     # 17 figures (PNG 200dpi + PDF)
+│   └── figures/                     # 19 figures (PNG 200dpi + PDF)
 ├── experiments/                     # Reproducible experiment pipeline
 │   ├── schema.py                    # Shared CSV schema (dependency-free)
 │   ├── telemetry.py                 # PyNVML/nvidia-smi power telemetry + energy integration
@@ -111,7 +111,7 @@ llm-pcag-research/
 │   ├── statistics.py                # Bootstrap CIs + hypothesis tests (seed 20260901)
 │   ├── model_form.py                # Model-form robustness of the wall (b*)
 │   ├── jevons_model.py              # Macro grid load simulation
-│   ├── make_figures.py              # Generates all 17 figures (PNG+PDF)
+│   ├── make_figures.py              # Generates all 19 figures (PNG+PDF)
 │   ├── verify_numbers.py            # Academic integrity gate: paper numbers vs. artifacts (78 checks)
 │   ├── dry_run.py                   # End-to-end pipeline verification
 │   └── *.csv / *.json               # Raw data + analysis outputs
@@ -142,7 +142,7 @@ python sensitivity.py           # 5. θ sweep + Jevons grid + Monte Carlo (seed 
 python statistics.py            # 6. Bootstrap CIs + hypothesis tests (seed 20260901)
 python model_form.py            # 7. Model-form robustness of the wall (b*)
 python jevons_model.py          # 8. Macro grid simulation
-python make_figures.py          # 9. Generate all 17 figures
+python make_figures.py          # 9. Generate all 19 figures
 python verify_numbers.py        # 10. Integrity gate — paper numbers vs. artifacts (expect 78 PASS)
 python dry_run.py               #     (optional) end-to-end pipeline check
 ```
@@ -176,7 +176,7 @@ Follow the standard protocol in [`docs/measurement_protocol.md`](docs/measuremen
 - [x] Phase 2: reference data (Llama-3-8B + 4-model extension)
 - [x] Phase 3: PCAG formulation + Power Wall detection + analytic proof
 - [x] Phase 4: Jevons macro simulation + closed-form proof
-- [x] Phase 5: paper draft (v2) + 17 figures
+- [x] Phase 5: paper draft (v2) + 19 figures
 - [x] Phase 6: academic completeness (v3) — theorems/definitions, notation, related work, threats to validity, statistical appendix, reproducibility, integrity gate
 - [x] Phase 7: pre-measurement rigor (v4) — bootstrap inference & estimability, model-form robustness, criterion consistency, external validation, broader impact & declarations
 - [ ] **GPU measurement**: run `benchmark_driver.py` → replace with measured data → fine-grained bit sampling (INT6/INT5)

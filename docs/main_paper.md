@@ -285,6 +285,8 @@ GPU 실측 전 단계의 결론 의존성을 정량화하기 위해 세 가지 �
 
 **해석 및 추정 가능성 (Estimability)**: 부트스트랩은 중요한 방법론적 교훈을 드러낸다. 기준(FP16)에 근접한 정밀도의 **절대 PCAG 값은 측정 잡음에 극도로 취약**하다 — 이는 PCAG 분모인 상대 정확도 손실이 기준점 부근에서 극소(예: INT8의 L≈0.0165)이기 때문이다. 반면 (i) **연속 변곡점(조건식 3.1)의 위치는 강건**하고, (ii) **심층 양자화(INT3/INT2)의 PCAG는 좁은 CI로 안정**적이다. 즉 Power Wall의 존재·위치에 대한 방어 가능한 증거는 "개별 근접-기준 PCAG 점값"이 아니라 **①강건한 연속 변곡점, ②안정적인 심층 붕괴, ③해석적 모델(정리 3.4, 명제 3.6)** 에서 온다. 이는 GPU 실측 시 **중간 비트(INT6/INT5) 샘플링과 반복 측정**이 왜 필수인지(`docs/measurement_protocol.md`)를 방법론적으로 뒷받침한다.
 
+*(Fig 18: 부트스트랩 추론 — PCAG 90% CI + 변곡점 분포 — `docs/figures/fig18_bootstrap_inference.png`)*
+
 ## 4.7 모델-형 강건성 (Model-Form Robustness)
 
 기존 해석은 단일 함수형(Weibull 포화 + 선형-로지스틱 가속)을 가정한다. `experiments/model_form.py` 는 대안 함수형 조합(전력 절감: Weibull·단일지수·쌍곡탄젠트·Hill / 정확도 손실: 선형-로지스틱·순수 멱·순수 로지스틱·선형-멱)에 대해 동일한 조건식 3.1의 근 b\*를 계산한다.
@@ -298,6 +300,8 @@ GPU 실측 전 단계의 결론 의존성을 정량화하기 위해 세 가지 �
 | (모든 S형) | 순수 멱/순수 로지스틱/선형-멱 | 도메인 밖 | 가속 손실 구조 부재 시 도메인 내 변곡점 없음 |
 
 **결론**: 모든 표준 포화형 전력 절감 함수에서 b\* ∈ **[4.19, 4.27]** 로 극히 안정적이며, 이는 정리 3.4의 구조적 무관성과 정합한다. 한편 가속(accelerating) 손실 성분이 없는 함수형(순수 멱/로지스틱)은 관측 도메인 내 변곡점을 생성하지 않아, **Power Wall 변곡의 존재는 "포화 절감 vs 가속 손실" 구조가 필수적**임을 역으로 확인한다. (세부값: `experiments/model_form_summary.json`)
+
+*(Fig 19: 모델-형 강건성 — 대안 함수형에 대한 b\* — `docs/figures/fig19_model_form_robustness.png`)*
 
 ## 4.8 외부 타당도: 문헌 앵커 정합성
 
@@ -419,7 +423,7 @@ python sensitivity.py                    # θ 스윕 + Jevons 그리드 + MC (�
 python statistics.py                     # 부트스트랩 통계 추론 (시드 20260901)
 python model_form.py                     # 모델-형 강건성 (b*)
 python jevons_model.py                   # Jevons 시나리오
-python make_figures.py                   # 그림 17종
+python make_figures.py                   # 그림 19종
 python verify_numbers.py                 # 논문 수치 ↔ 산출물 무결성 게이트 (exit 0)
 python dry_run.py                        # 통합 파이프라인 검증
 ```
@@ -451,6 +455,8 @@ python dry_run.py                        # 통합 파이프라인 검증
 | Fig 15 | `fig15_dashboard` | 연구 종합 대시보드 (2×2) |
 | Fig 16 | `fig16_jevons_surface` | Jevons 3D 곡면 (1−s)^(1−E_d) |
 | Fig 17 | `fig17_wall_convergence` | 3 독립 경로의 벽 위치 수렴 |
+| Fig 18 | `fig18_bootstrap_inference` | 부트스트랩 추론: PCAG 90% CI + 변곡점 분포 |
+| Fig 19 | `fig19_model_form_robustness` | 모델-형 강건성: 대안 함수형에 대한 b\* |
 
 모든 그림은 `experiments/make_figures.py` 로 재생성 가능하며, PNG(200dpi)+PDF 병행 제공.
 부록 수식 유도 상세: `docs/proof_3_1_derivation.md`.
@@ -573,4 +579,4 @@ PCAG 4→3 급락: (10.44−4.76)/10.44 = **54.4%**.
 > BibTeX 버전은 `docs/references.bib` 에 수록되어 있다.
 
 ---
-*생성 도구: PCAG Research Pipeline. v4 마지막 갱신: 2026-09-01. (v4: 명제 3.6 이산-연속 일관성, 부트스트랩 통계 추론(4.6)·추정 가능성, 모델-형 강건성(4.7), 외부 타당도(4.8), 사회적 영향·저자 기여·감사·이해상충 진술, 부록 B.6~B.8, 무결성 게이트 78개 항목)*
+*생성 도구: PCAG Research Pipeline. v4 마지막 갱신: 2026-09-01. (v4: 명제 3.6 이산-연속 일관성, 부트스트랩 통계 추론(4.6)·추정 가능성, 모델-형 강건성(4.7), 외부 타당도(4.8), 사회적 영향·저자 기여·감사·이해상충 진술, 부록 B.6~B.8, Fig 18~19, 무결성 게이트 78개 항목, dry_run 파이프라인 확장)*
