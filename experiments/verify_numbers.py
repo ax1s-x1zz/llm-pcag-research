@@ -155,6 +155,43 @@ closed = (1 - 0.55) ** (1 - 1.5) - 1
 check("jevons.closed_form_load_change", closed * 100, 49.0, abs_tol=1.0)
 
 # =====================================================================
+# 6. 조건식 3.2 ↔ 3.1 일관성 (analysis_proof.json, 해석적 다리)
+# =====================================================================
+cs = pr["condition_3_2_3_1_consistency"]
+check("consistency.max_discrete_drop_interval", cs["model_max_discrete_drop_interval"], "4->3")
+check("consistency.continuous_peak_b", cs["continuous_peak_collapse"]["b_peak"], 4.19, abs_tol=0.02)
+check("consistency.discrete_matches_continuous", cs["discrete_matches_continuous"], True)
+check("consistency.model_drop_4to3", cs["model_discrete_per_bit_drop"]["4->3"], 6.68, abs_tol=0.1)
+
+# =====================================================================
+# 7. 부트스트랩 통계 추론 (statistics_summary.json)
+# =====================================================================
+st = load_json("statistics_summary.json")
+check("boot.n_boot", st["n_boot"], 3000)
+check("boot.seed", st["seed"], 20260901)
+# 강건한 정량: 연속 변곡점 (조건식 3.1) CI — MC(3.40±0.25)와 일치
+ib = st["inflection_bits"]
+check("boot.inflection.mean", ib["mean"], 3.39, abs_tol=0.03)
+check("boot.inflection.ci90_low", ib["ci90_low"], 2.99, abs_tol=0.03)
+check("boot.inflection.ci90_high", ib["ci90_high"], 3.66, abs_tol=0.03)
+# 강건한 정량: 심층 양자화 PCAG (INT2) — 안정
+check("boot.pcag.INT2.mean", st["pcag"]["INT2"]["mean"], 2.22, abs_tol=0.05)
+check("boot.pcag.INT2.ci90_high", st["pcag"]["INT2"]["ci90_high"], 2.66, abs_tol=0.05)
+# 정직한 한계: 이산 기울기 유의성은 불충분 (estimability)
+check("boot.test.conclusion", st["test_INT4to3_gt_theta3"]["conclusion"], "not-significant")
+check("boot.test.p", st["test_INT4to3_gt_theta3"]["p"], 0.60, abs_tol=0.05)
+check("boot.diff.p_gt_0", st["slope_diff_INT4to3_minus_INT8to4"]["p_gt_0"], 0.77, abs_tol=0.03)
+
+# =====================================================================
+# 8. 모델-형 강건성 (model_form_summary.json)
+# =====================================================================
+mf = load_json("model_form_summary.json")
+check("modelform.n_inflection_in_domain", mf["n_inflection_in_domain"], 4)
+check("modelform.b_star_min", mf["b_star_min"], 4.19, abs_tol=0.02)
+check("modelform.b_star_max", mf["b_star_max"], 4.27, abs_tol=0.02)
+check("modelform.all_in_INT4_adjacent", mf["b_star_all_in_INT4_adjacent"], True)
+
+# =====================================================================
 # 실행
 # =====================================================================
 def main():

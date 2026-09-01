@@ -1,0 +1,223 @@
+{
+  "S_forms": [
+    "Weibull",
+    "Exp1",
+    "Tanh",
+    "Hill"
+  ],
+  "Lr_forms": [
+    "LinLog",
+    "Power",
+    "Logistic",
+    "LinPow"
+  ],
+  "domain_x": [
+    8.0,
+    14.0
+  ],
+  "b_star_values": [
+    4.192,
+    4.196,
+    4.24,
+    4.268
+  ],
+  "b_steep_values": [
+    3.072,
+    3.075,
+    3.088,
+    3.09,
+    4.558,
+    4.584,
+    5.286,
+    5.397,
+    7.999,
+    7.999,
+    7.999,
+    7.999,
+    7.999,
+    7.999,
+    7.999,
+    7.999
+  ],
+  "n_fits": 16,
+  "n_inflection_in_domain": 4,
+  "n_steep_all": 16,
+  "b_star_mean": 4.224,
+  "b_star_min": 4.192,
+  "b_star_max": 4.268,
+  "b_steep_mean": 6.009,
+  "b_steep_min": 3.072,
+  "b_steep_max": 7.999,
+  "b_star_all_in_INT4_adjacent": true,
+  "b_steep_all_le4_2": false,
+  "details": {
+    "Weibull": {
+      "LinLog": {
+        "b_star": 4.1917,
+        "x_star": 11.8083,
+        "h_prime_nonzero": true,
+        "b_steep": 3.0719,
+        "x_steep": 12.9281,
+        "inflection_in_domain": true,
+        "rmse_S": 0.002200326722903806,
+        "rmse_L": 7.443251565511717e-10
+      },
+      "Power": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.002200326722903806,
+        "rmse_L": 0.03880877448652889
+      },
+      "Logistic": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 4.5583,
+        "x_steep": 11.4417,
+        "inflection_in_domain": false,
+        "rmse_S": 0.002200326722903806,
+        "rmse_L": 0.006832097064741951
+      },
+      "LinPow": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.002200326722903806,
+        "rmse_L": 0.03880877448652925
+      }
+    },
+    "Exp1": {
+      "LinLog": {
+        "b_star": 4.2684,
+        "x_star": 11.7316,
+        "h_prime_nonzero": true,
+        "b_steep": 3.0899,
+        "x_steep": 12.9101,
+        "inflection_in_domain": true,
+        "rmse_S": 0.03351019951134751,
+        "rmse_L": 7.443251565511717e-10
+      },
+      "Power": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.03351019951134751,
+        "rmse_L": 0.03880877448652889
+      },
+      "Logistic": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 5.3967,
+        "x_steep": 10.6033,
+        "inflection_in_domain": false,
+        "rmse_S": 0.03351019951134751,
+        "rmse_L": 0.006832097064741951
+      },
+      "LinPow": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.03351019951134751,
+        "rmse_L": 0.03880877448652925
+      }
+    },
+    "Tanh": {
+      "LinLog": {
+        "b_star": 4.2401,
+        "x_star": 11.7599,
+        "h_prime_nonzero": true,
+        "b_steep": 3.0884,
+        "x_steep": 12.9116,
+        "inflection_in_domain": true,
+        "rmse_S": 0.022730261693534166,
+        "rmse_L": 7.443251565511717e-10
+      },
+      "Power": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.022730261693534166,
+        "rmse_L": 0.03880877448652889
+      },
+      "Logistic": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 5.2857,
+        "x_steep": 10.7143,
+        "inflection_in_domain": false,
+        "rmse_S": 0.022730261693534166,
+        "rmse_L": 0.006832097064741951
+      },
+      "LinPow": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.022730261693534166,
+        "rmse_L": 0.03880877448652925
+      }
+    },
+    "Hill": {
+      "LinLog": {
+        "b_star": 4.1964,
+        "x_star": 11.8036,
+        "h_prime_nonzero": true,
+        "b_steep": 3.0749,
+        "x_steep": 12.9251,
+        "inflection_in_domain": true,
+        "rmse_S": 0.0023632016417438726,
+        "rmse_L": 7.443251565511717e-10
+      },
+      "Power": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.0023632016417438726,
+        "rmse_L": 0.03880877448652889
+      },
+      "Logistic": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 4.5838,
+        "x_steep": 11.4162,
+        "inflection_in_domain": false,
+        "rmse_S": 0.0023632016417438726,
+        "rmse_L": 0.006832097064741951
+      },
+      "LinPow": {
+        "b_star": null,
+        "x_star": null,
+        "h_prime_nonzero": null,
+        "b_steep": 7.999,
+        "x_steep": 8.001,
+        "inflection_in_domain": false,
+        "rmse_S": 0.0023632016417438726,
+        "rmse_L": 0.03880877448652925
+      }
+    }
+  }
+}

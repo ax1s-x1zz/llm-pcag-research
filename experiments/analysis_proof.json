@@ -45,5 +45,20 @@
     "load_ratio_latex": "\\left(1 - s\\right)^{1 - E_{d}}",
     "dLds_latex": "\\left(1 - s\\right)^{- E_{d}} \\left(E_{d} - 1\\right)",
     "factorization_verified": true
+  },
+  "condition_3_2_3_1_consistency": {
+    "model_discrete_per_bit_drop": {
+      "8->7": -1.273,
+      "4->3": 6.678,
+      "3->2": 5.758,
+      "2->1": 2.525
+    },
+    "model_max_discrete_drop_interval": "4->3",
+    "continuous_peak_collapse": {
+      "b_peak": 4.192,
+      "x_peak": 11.808
+    },
+    "inflection_b_star": 4.191739122696326,
+    "discrete_matches_continuous": true
   }
 }

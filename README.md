@@ -106,16 +106,18 @@ llm-pcag-research/
 │   ├── generate_results.py          # Literature-anchored reference data (Reference-Literature, deterministic)
 │   ├── multimodel_data.py           # 4 models × 5 precisions = 20 anchor rows (deterministic)
 │   ├── analysis.py                  # PCAG computation + Power Wall detection
-│   ├── analytical_proof.py          # Closed-form derivation of Condition 3.1 + sympy Jevons proof
+│   ├── analytical_proof.py          # Closed-form derivation + Jevons proof + criterion consistency
 │   ├── sensitivity.py               # θ sweep, Jevons grid, Monte Carlo N=3000 (seed 42)
+│   ├── statistics.py                # Bootstrap CIs + hypothesis tests (seed 20260901)
+│   ├── model_form.py                # Model-form robustness of the wall (b*)
 │   ├── jevons_model.py              # Macro grid load simulation
 │   ├── make_figures.py              # Generates all 17 figures (PNG+PDF)
-│   ├── verify_numbers.py            # Academic integrity gate: paper numbers vs. artifacts (60 checks)
+│   ├── verify_numbers.py            # Academic integrity gate: paper numbers vs. artifacts (78 checks)
 │   ├── dry_run.py                   # End-to-end pipeline verification
 │   └── *.csv / *.json               # Raw data + analysis outputs
 └── logs/
     ├── troubleshooting_archive.md   # Engineering retrospective (11 issues)
-    └── change_log.md                # Paper/pipeline version history (v1 → v3)
+    └── change_log.md                # Paper/pipeline version history (v1 → v4)
 ```
 
 ---
@@ -135,12 +137,14 @@ cd experiments
 python generate_results.py      # 1. Generate reference data (Llama-3-8B anchor, deterministic)
 python multimodel_data.py       # 2. Generate multi-model anchors (4 models × 5 precisions, deterministic)
 python analysis.py              # 3. PCAG analysis + Power Wall detection
-python analytical_proof.py      # 4. Analytic derivation + Jevons symbolic proof
+python analytical_proof.py      # 4. Analytic derivation + Jevons proof + criterion consistency
 python sensitivity.py           # 5. θ sweep + Jevons grid + Monte Carlo (seed 42)
-python jevons_model.py          # 6. Macro grid simulation
-python make_figures.py          # 7. Generate all 17 figures
-python verify_numbers.py        # 8. Integrity gate — paper numbers vs. artifacts (expect 60 PASS)
-python dry_run.py               #    (optional) end-to-end pipeline check
+python statistics.py            # 6. Bootstrap CIs + hypothesis tests (seed 20260901)
+python model_form.py            # 7. Model-form robustness of the wall (b*)
+python jevons_model.py          # 8. Macro grid simulation
+python make_figures.py          # 9. Generate all 17 figures
+python verify_numbers.py        # 10. Integrity gate — paper numbers vs. artifacts (expect 78 PASS)
+python dry_run.py               #     (optional) end-to-end pipeline check
 ```
 
 See [`docs/reproducibility.md`](docs/reproducibility.md) for the full report (environment, golden hashes, verification matrix).
@@ -174,6 +178,7 @@ Follow the standard protocol in [`docs/measurement_protocol.md`](docs/measuremen
 - [x] Phase 4: Jevons macro simulation + closed-form proof
 - [x] Phase 5: paper draft (v2) + 17 figures
 - [x] Phase 6: academic completeness (v3) — theorems/definitions, notation, related work, threats to validity, statistical appendix, reproducibility, integrity gate
+- [x] Phase 7: pre-measurement rigor (v4) — bootstrap inference & estimability, model-form robustness, criterion consistency, external validation, broader impact & declarations
 - [ ] **GPU measurement**: run `benchmark_driver.py` → replace with measured data → fine-grained bit sampling (INT6/INT5)
 
 ---

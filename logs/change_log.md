@@ -5,6 +5,32 @@
 
 ---
 
+## v4 — 2026-09-01 (main, pre-Colab 원래 연구 방향)
+
+**문서**
+- `docs/main_paper.md` v4:
+  - 명제 3.6 (이산-연속 일관성, 조건식 3.2 ↔ 3.1) 추가 + 수치 검증 인용.
+  - 4.6 통계 추론: 부트스트랩 신뢰구간 + 추정 가능성(estimability) 분석.
+  - 4.7 모델-형 강건성 (대안 함수형에 대한 b\*).
+  - 4.8 외부 타당도: 문헌(GPTQ/AWQ) 대비 앵커 INT4 유지율 정합성.
+  - 사회적 영향(Broader Impact), 저자 기여·감사·이해상충·윤리 진술.
+  - 한계 4(추정 가능성)·한계 5(모델-형) 추가, 재현 명령열에 신규 스크립트 반영.
+  - 부록 B.6~B.8 (일관성·부트스트랩·모델-형 표).
+- `docs/proof_3_1_derivation.md`: 5절 "조건식 3.2 ↔ 3.1 일관성" 추가.
+- `docs/reproducibility.md`: 재현 명령열·골든 해시·검증 매트릭스 갱신 (78개 항목).
+
+**코드**
+- `experiments/statistics.py` 신설 — 부트스트랩 CI + 가설검정 (시드 20260901).
+  - 강건 정량: 연속 변곡점 CI [2.99,3.65], INT2 PCAG 안정.
+  - 정직한 한계: 근접-기준 PCAG·이산 기울기 유의성은 취약.
+- `experiments/model_form.py` 신설 — 대안 함수형(Weibull/Exp/Tanh/Hill × LinLog/Power/Logistic/LinPow)에 대한 b\*.
+  - b\* ∈ [4.19, 4.27] (표준 포화형 4종), 가속 손실 구조 부재 시 변곡점 도메인 밖.
+- `experiments/analytical_proof.py` — `condition_3_2_3_1_consistency` 추가 (명제 3.6 수치 검증).
+- `experiments/verify_numbers.py` — 60 → 78개 항목으로 확장.
+
+**검증**
+- `verify_numbers.py` : 78 PASS / 0 FAIL.
+
 ## v3 — 2026-09-01 (main, pre-Colab 원래 연구 방향)
 
 **문서**

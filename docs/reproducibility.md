@@ -42,12 +42,14 @@ cd experiments
 python generate_results.py                # (1) 참고 데이터 — 결정적
 python multimodel_data.py                 # (2) 다중 모델 앵커 — 결정적
 python analysis.py                        # (3) PCAG 분석 + Power Wall 판정
-python analytical_proof.py                # (4) 폐형 유도 + Jevons 기호 증명 (+ proof_3_1_derivation.md)
+python analytical_proof.py                # (4) 폐형 유도 + Jevons 기호 증명 + 조건식 3.2↔3.1 일관성
 python sensitivity.py                     # (5) θ 스윕 + Jevons 그리드 + Monte Carlo (시드 42)
-python jevons_model.py                    # (6) Jevons 시나리오
-python make_figures.py                    # (7) 그림 17종 (PNG 200dpi + PDF)
-python verify_numbers.py                  # (8) 무결성 게이트 — 모든 수치 PASS 기대, exit 0
-python dry_run.py                         # (9) 통합 파이프라인 검증
+python statistics.py                      # (6) 부트스트랩 통계 추론 (시드 20260901)
+python model_form.py                      # (7) 모델-형 강건성 (b*)
+python jevons_model.py                    # (8) Jevons 시나리오
+python make_figures.py                    # (9) 그림 17종 (PNG 200dpi + PDF)
+python verify_numbers.py                  # (10) 무결성 게이트 — 모든 수치 PASS 기대, exit 0
+python dry_run.py                         # (11) 통합 파이프라인 검증
 ```
 
 > 참고: `make_figures.py` 재실행 시 matplotlib 버전에 따라 PNG/PDF 바이트가 달라질 수 있다
@@ -62,8 +64,10 @@ python dry_run.py                         # (9) 통합 파이프라인 검증
 75782aa0111c2415975ea132592b7b9dec1102fcf6d16b4c7b1159687849dd5e  experiments/results_raw.csv
 410bea16cb8778e5db7f7efe0f22e5deed0393a0cd8e444159486fbff69a9315  experiments/results_multimodel_raw.csv
 8162db85f87500fe353b8af439e10cb4843b8c71c1b03d2264f7f15d06f7a448  experiments/analysis_summary.json
-5a38e92ee1b96c7c94bb5247ee3357f1c3d9a271f53a401f939e24dc599ee125  experiments/analysis_proof.json
+d3626ab6caf6195be1360fe8c14626054122f4db8a91809dbb825b10ee1604a4  experiments/analysis_proof.json
 ee005121b6cef35b6ab566876a9c7059eeb9aaf496a7b402496057a947a3f507  experiments/sensitivity_summary.json
+668e9bb41c811e47668579ba4604e940ce69e86b5fb326111aa1f0f8c0eaf715  experiments/statistics_summary.json
+236c88f4a2e0f6d20691e577276596157efc1855870c9780818faa48ff6a492d  experiments/model_form_summary.json
 7d9ff44dd1182dc572a507e52087cd1598c26f63f0e325c694d103ca6227b61f  experiments/jevons_summary.json
 ```
 
@@ -71,12 +75,13 @@ ee005121b6cef35b6ab566876a9c7059eeb9aaf496a7b402496057a947a3f507  experiments/se
 cd <repo-root>
 sha256sum experiments/results_raw.csv experiments/results_multimodel_raw.csv \
           experiments/analysis_summary.json experiments/analysis_proof.json \
-          experiments/sensitivity_summary.json experiments/jevons_summary.json
+          experiments/sensitivity_summary.json experiments/statistics_summary.json \
+          experiments/model_form_summary.json experiments/jevons_summary.json
 ```
 
 ## 5. 논문 수치 ↔ 산출물 검증 매트릭스
 
-`experiments/verify_numbers.py` 가 다음 항목을 자동 검증한다(총 60개).
+`experiments/verify_numbers.py` 가 다음 항목을 자동 검증한다(총 78개).
 
 | 논문 항목 | 값 | 출처 |
 |---|---|---|
@@ -91,6 +96,11 @@ sha256sum experiments/results_raw.csv experiments/results_multimodel_raw.csv \
 | θ<5.68 불변성 | True | `sensitivity_summary.json` |
 | Jevons 부하 증가 영역 | 65.6% | `sensitivity_summary.json` |
 | INT4 수요 증가 / 총부하 | +231% / +49% (폐형 49.07%) | `jevons_summary.json` |
+| 조건식 3.2↔3.1 일관성 | 최대 드롭 4→3, 붕괴율 최대 b≈4.19, 일치=True | `analysis_proof.json` |
+| 부트스트랩 연속 변곡점 | 3.39, 90% CI [2.99, 3.65] | `statistics_summary.json` |
+| 부트스트랩 INT2 PCAG | 2.22, 90% CI [1.88, 2.66] | `statistics_summary.json` |
+| 부트스트랩 이산 기울기 검정 | P=0.60 (유의하지 않음) | `statistics_summary.json` |
+| 모델-형 b\* | [4.19, 4.27] (4개 표준 포화형) | `model_form_summary.json` |
 | 해석 모델 파라미터 | S_max 0.796, λ 0.0932, β 1.957, c 0.00205, Lr_max 0.558, k 1.396, x_c 14.07 | `analysis_proof.json` |
 | 원시 앵커 (acc/energy) | FP16 66.6/140 → INT2 47.0/49.5 | `results_raw.csv` |
 

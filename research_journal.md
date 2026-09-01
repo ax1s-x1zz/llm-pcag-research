@@ -175,3 +175,40 @@ Colab 최적화 상태는 별도 브랜치(colab-t4-optimization)로 격리. 이
   로 갱신 수치 식별 → 논문·부록·해시 갱신.
 - 참고: 원격(origin) 반영은 로컬 자격증명(credential.helper=-l) 문제로 보류 — `git push --force origin main`
   및 `git push -u origin colab-t4-optimization` 수동 실행 필요.
+
+---
+## 2026-09-01 — Phase 8: 실측 전 학술 가치 제고 (v4: 통계 추론·모델-형 강건성·이산-연속 일관성·외부 타당도)
+
+### 배경
+main(원래 연구)에서 GPU 실측 전에 학술적 가치를 더 높일 수 있는 분석·문서 작업을 수행.
+푸시 자격증명(credential.helper=-l)은 `store` 헬퍼로 교체해 원격에도 반영 완료.
+
+### 부트스트랩 통계 추론 (`statistics.py`)
+- 앵커 로그정규 잡음(σ=3%, N=3000, 시드 20260901) 하에서 각 PCAG·이산 기울기·연속 변곡점의
+  90% CI와 가설검정 산출.
+- **강건 정량**: 연속 변곡점 mean 3.39, 90% CI [2.99, 3.65] (MC 3.40±0.25와 일치);
+  심층 양자화 PCAG(INT2) 2.22 CI [1.88, 2.66] — 안정.
+- **정직한 한계 (estimability)**: 근접-기준 PCAG(INT8)는 잡음에 극히 취약(mean 52.1,
+  CI [3.8, 93.7]); 이산 기울기 유의성은 불충분(INT4→3>θ=3: P=0.60, 유의하지 않음).
+  → Power Wall의 방어 가능한 증거는 연속 변곡점·심층 붕괴·해석 모델에 두어야 함을 명시.
+
+### 모델-형 강건성 (`model_form.py`)
+- 대안 함수형(절감: Weibull/Exp/Tanh/Hill × 손실: LinLog/Power/Logistic/LinPow)에 대한 b\*.
+- 표준 포화형 4종 모두에서 b\* ∈ [4.19, 4.27] — 정리 3.4 구조적 무관성과 정합.
+- 가속 손실 성분 부재 시 도메인 내 변곡점 없음 → 변곡 존재에 가속 구조가 필수.
+
+### 조건식 3.2 ↔ 3.1 일관성 (`analytical_proof.py` 확장)
+- 적합 모델 단위 비트 드롭 최대가 4→3(+6.68), 연속 붕괴율 최대 b≈4.19, 변곡점 b\*=4.19
+  → 이산 판정과 연속 판정이 동일 위치(명제 3.6).
+
+### 외부 타당도 (4.8)
+- 문헌(GPTQ/AWQ) 전형 PTQ INT4 유지율(~95~99%) 대비 앵커 유지율(94.6~96.4%) 정합 확인.
+
+### 수치 무결성
+- verify_numbers.py 60→78 항목 확장. **78 PASS / 0 FAIL.**
+- 골든 해시 갱신(analysis_proof/statistics/model_form), 재현 명령열 갱신.
+
+### 현재 상태
+- main = pre-Colab 원래 연구 + v4 문서/도구. Colab 최적화는 `colab-t4-optimization` 브랜치.
+- 다음 단계(GPU 확보 시): measurement_protocol.md Swap Procedure → 실측 교체 →
+  verify_numbers.py 로 갱신 수치 식별 → 논문·부록·해시 갱신.

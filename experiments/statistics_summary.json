@@ -1,0 +1,70 @@
+{
+  "n_boot": 3000,
+  "rel_sigma": 0.03,
+  "theta": 3.0,
+  "seed": 20260901,
+  "pcag": {
+    "INT8": {
+      "n": 1991,
+      "mean": 52.133,
+      "std": 653.214,
+      "ci90_low": 3.812,
+      "ci90_high": 93.687
+    },
+    "INT4": {
+      "n": 2718,
+      "mean": 23.832,
+      "std": 112.885,
+      "ci90_low": 4.608,
+      "ci90_high": 56.917
+    },
+    "INT3": {
+      "n": 2999,
+      "mean": 5.359,
+      "std": 2.661,
+      "ci90_low": 3.268,
+      "ci90_high": 9.156
+    },
+    "INT2": {
+      "n": 3000,
+      "mean": 2.221,
+      "std": 0.239,
+      "ci90_low": 1.879,
+      "ci90_high": 2.655
+    }
+  },
+  "slopes": {
+    "INT8->INT4": {
+      "n": 1915,
+      "mean": 9.532,
+      "std": 70.141,
+      "ci90_low": 0.096,
+      "ci90_high": 23.946
+    },
+    "INT4->INT3": {
+      "n": 2718,
+      "mean": 18.86,
+      "std": 112.749,
+      "ci90_low": 0.466,
+      "ci90_high": 50.276
+    }
+  },
+  "slope_diff_INT4to3_minus_INT8to4": {
+    "n_paired": 1915,
+    "mean": 3.204,
+    "ci90_low": -12.101,
+    "ci90_high": 23.624,
+    "p_gt_0": 0.7739
+  },
+  "test_INT4to3_gt_theta3": {
+    "p": 0.601,
+    "conclusion": "not-significant"
+  },
+  "inflection_bits": {
+    "n": 1800,
+    "mean": 3.39,
+    "std": 0.269,
+    "ci90_low": 2.993,
+    "ci90_high": 3.653
+  }
+}

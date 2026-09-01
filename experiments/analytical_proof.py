@@ -174,6 +174,60 @@ def symbolic_jevons():
             "factorization_verified": bool(check)}
 
 
+def condition_3_2_3_1_consistency(params):
+    """조건식 3.2(이산 기울기) ↔ 조건식 3.1(연속 변곡점) 일관성 수치 검증.
+
+    이산 기울기 |ΔPCAG/Δb| 가 최대인 비트 구간이, 연속 모델의 PCAG 붕괴율이 가장 큰
+    구간 및 변곡점 b*가 위치한 구간과 일치하는지 확인한다. 즉 "이산 Power Wall 판정"과
+    "연속 변곡점 판정"이 같은 위치를 가리킨다는 해석적 다리(bridge)를 제공한다.
+    """
+    Smax, lam, beta = params["S_max"], params["lambda"], params["beta"]
+    c, Lmax, k, xc = params["c_lin"], params["Lr_max"], params["k"], params["xc"]
+
+    def S_f(xv):
+        return Smax * (1 - np.exp(-(lam * xv) ** beta))
+
+    def L_f(xv):
+        return c * xv + Lmax * sigmoid(k * (xv - xc))
+
+    def pcag(xv):
+        return S_f(xv) / L_f(xv)
+
+    # (a) 모델 기준 이산 단위 비트 드롭: ΔPCAG = PCAG(x-1) - PCAG(x)  (>0: 붕괴)
+    drops = {}
+    for bits in [8, 4, 3, 2]:
+        x = 16 - bits
+        drops[f"{bits}->{bits-1}"] = float(pcag(x - 1) - pcag(x))
+    max_drop_key = max(drops, key=drops.get)
+
+    # (b) 연속 붕괴율 |dPCAG/db| = |dPCAG/dx| 의 최대 지점 (도메인 x∈[8,14])
+    h = 1e-4
+    grid = np.linspace(X_OBS_MIN + 1e-3, 14.0 - 1e-3, 4000)
+    dln = np.array([(np.log(pcag(xv + h)) - np.log(pcag(xv - h))) / (2 * h)
+                    for xv in grid])
+    dabs = np.abs(pcag(grid)) * np.abs(dln)   # |dPCAG/db| = PCAG · |d ln PCAG/db|
+    i_peak = int(np.argmax(dabs))
+    x_peak = float(grid[i_peak])
+    b_peak = 16.0 - x_peak
+
+    # (c) 변곡점(조건식 3.1) b* 위치
+    roots, b_star = solve_inflection(params)
+
+    return {
+        "model_discrete_per_bit_drop": {k: round(v, 3) for k, v in drops.items()},
+        "model_max_discrete_drop_interval": max_drop_key,
+        "continuous_peak_collapse": {
+            "b_peak": round(b_peak, 3),
+            "x_peak": round(x_peak, 3),
+        },
+        "inflection_b_star": b_star,
+        "discrete_matches_continuous": bool(
+            (max_drop_key == "4->3")
+            and (b_peak >= 3.0) and (b_peak <= 4.5)
+            and (b_star is not None and 3.0 <= b_star <= 4.5)),
+    }
+
+
 def main():
     points, P0, A0 = load_points()
     print("=== 앵커 (x=16-b 로 재표현) ===")
@@ -227,6 +281,13 @@ def main():
     print(f"  dL/ds   = {jev['dLds_latex']}  →  증가 ⟺ E_d>1 "
           f"(검증: {jev['factorization_verified']})")
 
+    cs = condition_3_2_3_1_consistency(params)
+    print(f"\n=== 조건식 3.2 ↔ 3.1 일관성 (해석적 다리) ===")
+    print(f"  모델 이산 단위 비트 드롭: {cs['model_discrete_per_bit_drop']}")
+    print(f"  최대 이산 드롭 구간: {cs['model_max_discrete_drop_interval']}")
+    print(f"  연속 붕괴율 최대 지점 b_peak={cs['continuous_peak_collapse']['b_peak']}")
+    print(f"  변곡점 b*={cs['inflection_b_star']} → 일치: {cs['discrete_matches_continuous']}")
+
     out = {
         "model": {
             "S(x)": "S_max*(1-exp(-(lambda*x)**beta))",
@@ -248,6 +309,7 @@ def main():
             "monte_carlo_mean_b": 3.398,
         },
         "jevons_closed_form": jev,
+        "condition_3_2_3_1_consistency": cs,
     }
     with open(OUT_JSON, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
@@ -258,6 +320,7 @@ def main():
 def write_markdown(out, params, roots, b_star):
     p = params
     r0 = roots[0] if roots else {}
+    cs = out["condition_3_2_3_1_consistency"]
     md = f"""# 조건식 3.1 (Power Wall 변곡점) 해석적 유도 — 부록 자료
 
 > 본 문서는 `experiments/analytical_proof.py` (폐형 유도 + 수치 검증, Jevons는 sympy 기호 증명)의
@@ -331,6 +394,25 @@ PCAG'' = PCAG·(g'(x) + g(x)²) 이고 PCAG > 0 이므로:
 
 이는 "절감률이 클수록 역설이 커진다"는 정성적 주장을 폐형으로 강화한 것이다.
 (sympy 검증: {out['jevons_closed_form']['factorization_verified']})
+
+## 5. 조건식 3.2 ↔ 3.1 일관성 (해석적 다리)
+
+이산 기울기 [조건식 3.2]와 연속 변곡점 [조건식 3.1]이 같은 벽 위치를 가리키는지 검증한다.
+적합 모델 기준 단위 비트 드롭 ΔPCAG = PCAG(b-1) - PCAG(b):
+
+| 구간 | 모델 ΔPCAG |
+|---|---|
+| 8→7 | {cs['model_discrete_per_bit_drop']['8->7']:.2f} |
+| **4→3** | **{cs['model_discrete_per_bit_drop']['4->3']:.2f}** |
+| 3→2 | {cs['model_discrete_per_bit_drop']['3->2']:.2f} |
+| 2→1 | {cs['model_discrete_per_bit_drop']['2->1']:.2f} |
+
+- 최대 이산 드롭 구간: **{cs['model_max_discrete_drop_interval']}**
+- 연속 붕괴율 |dPCAG/db| 최대 지점: b≈{cs['continuous_peak_collapse']['b_peak']}
+- 변곡점(조건식 3.1) b*: {cs['inflection_b_star']}
+
+즉 이산 Power Wall 판정(4→3)과 연속 변곡점 판정(≈4)이 일치한다
+(일관성: {cs['discrete_matches_continuous']}).
 """
     with open(OUT_MD, "w", encoding="utf-8") as f:
         f.write(md)
